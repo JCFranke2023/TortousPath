@@ -2,7 +2,7 @@
 #
 # Abaqus/CAE Release 2024 replay file
 # Internal Version: 2023_09_21-14.55.25 RELr426 190762
-# Run by franke on Thu Aug 28 16:56:14 2025
+# Run by franke on Thu Aug 28 17:54:51 2025
 #
 
 # from driverUtils import executeOnCaeGraphicsStartup
@@ -15,7 +15,7 @@ session.Viewport(name='Viewport: 1', origin=(1.55729, 1.55556), width=229.233,
 session.viewports['Viewport: 1'].makeCurrent()
 from driverUtils import executeOnCaeStartup
 executeOnCaeStartup()
-execfile('simple_post_processor.py', __main__.__dict__)
+execfile('abaqus_data_extractor.py', __main__.__dict__)
 #: Model: C:/Users/franke/source/repos/JCFranke2023/TortousPath/./abaqus_files/results/Job_SS_c1e02_d1e04_o0p25.odb
 #: Number of Assemblies:         1
 #: Number of Assembly instances: 0
