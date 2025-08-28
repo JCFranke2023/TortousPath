@@ -1,6 +1,7 @@
 """
 Material properties for PECVD barrier coating permeation simulation
 Water vapor diffusion at 37°C, 100% RH
+Units: nanometers, seconds
 """
 
 import math
@@ -10,43 +11,43 @@ TEMPERATURE = 37 + 273.15  # 310.15 K
 
 class MaterialProperties:
     def __init__(self):
-        # Water vapor diffusivity (m²/s) at 37°C
+        # Water vapor diffusivity (nm²/s) at 37°C - converted from m²/s
         self.diffusivities = {
-            'PET': 1.0e-12,           # PET substrate (typical range 1e-13 to 1e-11)
-            'interlayer': 5.0e-11,    # Silicon organic interlayers (permeable)
-            'barrier': 1.0e-16,       # PECVD barrier (effectively impermeable)
-            'air_crack': 2.4e-5       # Water vapor in air-filled cracks
+            'PET': 1.0e6,           # 1.0e-12 m²/s = 1.0e6 nm²/s
+            'interlayer': 5.0e7,    # 5.0e-11 m²/s = 5.0e7 nm²/s
+            'barrier': 1.0e-2,      # 1.0e-16 m²/s = 1.0e-2 nm²/s (effectively impermeable)
+            'air_crack': 2.4e13     # 2.4e-5 m²/s = 2.4e13 nm²/s
         }
         
-        # Solubility coefficients (mol/m³/Pa) - if needed for concentration boundary conditions
+        # Solubility coefficients (mol/nm³/Pa) - converted from m³
         self.solubilities = {
-            'PET': 1.0e-6,
-            'interlayer': 2.0e-6,
-            'barrier': 1.0e-9,
-            'air_crack': 4.0e-2  # Ideal gas approximation
+            'PET': 1.0e-33,      # 1.0e-6 mol/m³/Pa = 1.0e-33 mol/nm³/Pa
+            'interlayer': 2.0e-33,
+            'barrier': 1.0e-36,
+            'air_crack': 4.0e-29  # 4.0e-2 mol/m³/Pa = 4.0e-29 mol/nm³/Pa
         }
         
-        # Layer thickness defaults (meters)
+        # Layer thickness defaults (nanometers)
         self.thicknesses = {
-            'h0': 500e-9,    # PET substrate (50 μm)
-            'h1': 50-9,   # Adhesion promoter (500 nm)
-            'h2': 50-9,   # Barrier 1 (100 nm)
-            'h3': 50-9,   # Interlayer (500 nm)  
-            'h4': 50-9,   # Barrier 2 (100 nm)
-            'h5': 50-9    # Top coat (500 nm)
+            'h0': 500,    # PET substrate (0.5 μm = 500 nm)
+            'h1': 50,      # Adhesion promoter (50 nm)
+            'h2': 50,      # Barrier 1 (50 nm)
+            'h3': 50,      # Interlayer (50 nm)
+            'h4': 50,      # Barrier 2 (50 nm)
+            'h5': 50       # Top coat (50 nm)
         }
     
     def get_diffusivity(self, material):
         """Get diffusivity for specified material"""
-        return self.diffusivities.get(material, 1.0e-12)
+        return self.diffusivities.get(material, 1.0e6)
     
     def get_solubility(self, material):
         """Get solubility for specified material"""
-        return self.solubilities.get(material, 1.0e-6)
+        return self.solubilities.get(material, 1.0e-33)
     
     def get_thickness(self, layer):
         """Get default thickness for specified layer"""
-        return self.thicknesses.get(layer, 1.0e-6)
+        return self.thicknesses.get(layer, 500)
 
 # Create global instance
 materials = MaterialProperties()

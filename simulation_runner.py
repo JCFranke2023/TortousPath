@@ -8,15 +8,17 @@ import sys
 import json
 import time
 from material_properties import materials
-from geometry_generator import geometry
+from geometry_generator import GeometryGenerator
 
 try:
     # ABAQUS imports
     from abaqus import *
     from abaqusConstants import *
+    from regionToolset import Region
     import step
     import load
     import job
+    from mesh import ElemType
     ABAQUS_ENV = True
 except ImportError:
     ABAQUS_ENV = False
@@ -30,6 +32,12 @@ class SimulationRunner:
             if model_name in mdb.models:
                 del mdb.models[model_name]
             self.model = mdb.Model(name=model_name)
+            
+            # Initialize geometry generator with the model
+            self.geometry = GeometryGenerator(self.model)
+        else:
+            self.model = None
+            self.geometry = GeometryGenerator()
         
         # Simulation parameters
         self.total_time = 86400.0  # 24 hours (seconds)
@@ -49,28 +57,38 @@ class SimulationRunner:
             print("  crack_offset: {:.2f}".format(crack_offset))
             return
         
-        # Set geometry parameters (single-sided only for now)
-        geometry.set_parameters(
+        # Set geometry parameters
+        self.geometry.set_parameters(
             crack_width=crack_width,
             crack_spacing=crack_spacing, 
             crack_offset=crack_offset,
             single_sided=True
         )
         
-        # Create geometry and materials
-        geometry.create_materials()
-        part = geometry.create_unit_cell_geometry()
-        geometry.assign_sections(part)
+        # Create materials first
+        self.geometry.create_materials()
+        
+        # Create geometry
+        part = self.geometry.create_unit_cell_geometry()
+        
+        # Create sections 
+        self.geometry.assign_sections(part)
+        
+        # For now, assign a single material to get the simulation running
+        # We'll add complex material assignment later
+        pet_section = self.model.sections['PET_section']
+        part.SectionAssignment(region=(part.faces,), sectionName='PET_section')
+        print("Assigned PET material to entire geometry")
         
         # Create assembly
         assembly = self.model.rootAssembly
         instance = assembly.Instance(name='UnitCell-1', part=part, dependent=ON)
         
         # Create mesh
-        geometry.create_mesh(part)
+        self.geometry.create_mesh(part)
         
         return instance
-        
+            
     def create_analysis_step(self):
         """Create transient mass diffusion step"""
         if not ABAQUS_ENV:
@@ -83,21 +101,39 @@ class SimulationRunner:
             timePeriod=self.total_time,
             initialInc=self.initial_increment,
             maxInc=self.max_increment,
-            minInc=1e-6
+            minInc=1e-6,
+            dcmax=1000.0  # Maximum allowable concentration change per increment
         )
+
+    def create_surfaces(self, instance):
+        """Create named surfaces for boundary conditions"""
+        if not ABAQUS_ENV:
+            print("Would create boundary surfaces")
+            return
+            
+        # Get geometry parameters
+        height = self.geometry.total_height
+        width = self.geometry.crack_spacing
         
-        # Request field and history outputs
-        self.model.fieldOutputRequests['F-Output-1'].setValues(
-            variables=('CONC', 'MFL'),  # Concentration and mass flux
-            timeInterval=3600.0  # Output every hour
-        )
+        # Get assembly for surface creation
+        assembly = self.model.rootAssembly
         
-        self.model.HistoryOutputRequest(
-            name='H-Flux',
-            createStepName='Permeation', 
-            variables=('MFL',),
-            region=None  # Will be set to outlet surface
-        )
+        # Create surfaces by selecting edges
+        # Top surface (y = total_height) - inlet
+        top_edges = instance.edges.findAt(((width/2, height, 0.0), ))
+        assembly.Surface(side1Edges=top_edges, name='Top-Surface')
+        
+        # Bottom surface (y = 0) - outlet
+        bottom_edges = instance.edges.findAt(((width/2, 0.0, 0.0), ))
+        assembly.Surface(side1Edges=bottom_edges, name='Bottom-Surface')
+        
+        # Left surface (x = 0) - periodic
+        left_edges = instance.edges.findAt(((0.0, height/2, 0.0), ))
+        assembly.Surface(side1Edges=left_edges, name='Left-Surface')
+        
+        # Right surface (x = width) - periodic  
+        right_edges = instance.edges.findAt(((width, height/2, 0.0), ))
+        assembly.Surface(side1Edges=right_edges, name='Right-Surface')
 
     def apply_boundary_conditions(self, instance):
         """Apply concentration boundary conditions and periodic constraints"""
@@ -107,65 +143,38 @@ class SimulationRunner:
             print("  Bottom (outlet): C = {:.1f}".format(self.outlet_concentration))
             return
             
-        # Get surfaces
-        assembly = self.model.rootAssembly
+        # Get geometry parameters
+        height = self.geometry.total_height
+        width = self.geometry.crack_spacing
         
-        # Inlet boundary condition (top surface)
-        top_surface = instance.surfaces['Top-Surface']
-        self.model.ConcentrationBC(
-            name='Inlet',
-            createStepName='Permeation',
-            region=top_surface,
-            magnitude=self.inlet_concentration
-        )
+        # Find edges by coordinate - use a simpler approach
+        # Top edge (y = height)
+        try:
+            top_edges = instance.edges.findAt(((width/2, height, 0.0), ), ((width/4, height, 0.0), ))
+            top_region = Region(side1Edges=top_edges)
+            self.model.ConcentrationBC(
+                name='Inlet',
+                createStepName='Permeation',
+                region=top_region,
+                magnitude=self.inlet_concentration
+            )
+            print("Applied inlet BC to top edge")
+        except:
+            print("Warning: Could not find top edge for inlet BC")
         
-        # Outlet boundary condition (bottom surface)
-        bottom_surface = instance.surfaces['Bottom-Surface']
-        self.model.ConcentrationBC(
-            name='Outlet',
-            createStepName='Permeation',
-            region=bottom_surface,
-            magnitude=self.outlet_concentration
-        )
-        
-        # Periodic boundary conditions (left/right surfaces)
-        left_surface = instance.surfaces['Left-Surface'] 
-        right_surface = instance.surfaces['Right-Surface']
-        
-        # Create equation constraint for periodic conditions
-        self.model.Equation(
-            name='Periodic-Conc',
-            terms=((1.0, left_surface, 8), (-1.0, right_surface, 8))  # DOF 8 = concentration
-        )
-
-    def create_surfaces(self, instance):
-        """Create named surfaces for boundary conditions"""
-        if not ABAQUS_ENV:
-            print("Would create boundary surfaces")
-            return
-            
-        assembly = self.model.rootAssembly
-        part = instance.part
-        
-        # Get total height for surface identification
-        height = geometry.total_height
-        width = geometry.crack_spacing
-        
-        # Top surface (y = total_height) - inlet
-        top_edges = part.edges.findAt(((width/2, height, 0.0), ))
-        assembly.Surface(side1Edges=top_edges, name='Top-Surface')
-        
-        # Bottom surface (y = 0) - outlet
-        bottom_edges = part.edges.findAt(((width/2, 0.0, 0.0), ))
-        assembly.Surface(side1Edges=bottom_edges, name='Bottom-Surface')
-        
-        # Left surface (x = 0) - periodic
-        left_edges = part.edges.findAt(((0.0, height/2, 0.0), ))
-        assembly.Surface(side1Edges=left_edges, name='Left-Surface')
-        
-        # Right surface (x = width) - periodic  
-        right_edges = part.edges.findAt(((width, height/2, 0.0), ))
-        assembly.Surface(side1Edges=right_edges, name='Right-Surface')
+        # Bottom edge (y = 0)
+        try:
+            bottom_edges = instance.edges.findAt(((width/2, 0.0, 0.0), ), ((width/4, 0.0, 0.0), ))
+            bottom_region = Region(side1Edges=bottom_edges)
+            self.model.ConcentrationBC(
+                name='Outlet',
+                createStepName='Permeation',
+                region=bottom_region,
+                magnitude=self.outlet_concentration
+            )
+            print("Applied outlet BC to bottom edge")
+        except:
+            print("Warning: Could not find bottom edge for outlet BC")    
 
     def submit_job(self, job_name='Permeation_Job'):
         """Submit ABAQUS job for analysis"""
@@ -174,17 +183,17 @@ class SimulationRunner:
             return job_name
             
         # Create job
-        job = mdb.Job(
+        analysis_job = mdb.Job(
             name=job_name,
             model=self.model_name,
             description='PECVD barrier permeation analysis'
         )
         
         # Submit job
-        job.submit()
+        analysis_job.submit()
         
         # Wait for completion
-        job.waitForCompletion()
+        analysis_job.waitForCompletion()
         
         return job_name
 
@@ -262,33 +271,14 @@ runner = SimulationRunner()
 
 # Command line interface
 if __name__ == '__main__':
-    import argparse
+    print("Starting PECVD barrier permeation simulation...")
+    print("Units: nanometers, seconds")
     
-    parser = argparse.ArgumentParser(description='Run PECVD barrier permeation simulation')
-    parser.add_argument('--config', help='Configuration file path')
-    parser.add_argument('--sweep', help='Parameter sweep configuration file')
-    
-    args = parser.parse_args()
-    
-    if args.sweep:
-        # Run parameter sweep
-        config = runner.load_config(args.sweep)
-        results = runner.run_parameter_sweep(config)
-        print("Parameter sweep completed. {} jobs submitted.".format(len(results)))
-        
-    elif args.config:
-        # Run single simulation
-        config = runner.load_config(args.config)
-        job_name = runner.run_single_simulation(config)
-        print("Single simulation completed: {}".format(job_name))
-        
-    else:
-        # Run default case
-        default_params = {
-            'crack_width': 100e-9,
-            'crack_spacing': 10e-6,
-            'crack_offset': 0.25
-        }
-        job_name = runner.run_single_simulation(default_params)
-        print("Default simulation completed: {}".format(job_name))
-        
+    # Run default case - now in nanometers
+    default_params = {
+        'crack_width': 100,      # 100 nm crack width
+        'crack_spacing': 10000,  # 10 μm = 10,000 nm crack spacing
+        'crack_offset': 0.25     # 25% offset between layers
+    }
+    job_name = runner.run_single_simulation(default_params)
+    print("Default simulation completed: {}".format(job_name))

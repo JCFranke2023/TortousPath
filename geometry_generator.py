@@ -16,6 +16,7 @@ try:
     import section
     import assembly
     import mesh
+    from mesh import ElemType
     ABAQUS_ENV = True
 except ImportError:
     # Development environment - create mock objects
@@ -23,10 +24,8 @@ except ImportError:
     print("Running in development mode - ABAQUS imports not available")
 
 class GeometryGenerator:
-    def __init__(self, model_name='PermeationModel'):
-        self.model_name = model_name
-        if ABAQUS_ENV:
-            self.model = mdb.models[model_name]
+    def __init__(self, model=None):
+        self.model = model  # Model will be passed from simulation_runner
         
         # Geometry parameters (will be set via configuration)
         self.crack_width = 100e-9     # c: crack width (m)
@@ -46,6 +45,10 @@ class GeometryGenerator:
         self.total_height = (self.h0_substrate + self.h1_adhesion + self.h2_barrier1 + 
                              self.h3_interlayer + self.h4_barrier2 + self.h5_topcoat)
 
+    def set_model(self, model):
+        """Set the ABAQUS model"""
+        self.model = model
+
     def set_parameters(self, crack_width=None, crack_spacing=None, crack_offset=None, 
                       single_sided=None, thicknesses=None):
         """Update geometry parameters"""
@@ -60,6 +63,10 @@ class GeometryGenerator:
         if thicknesses is not None:
             for key, value in thicknesses.items():
                 setattr(self, key, value)
+        
+        # Recalculate total height
+        self.total_height = (self.h0_substrate + self.h1_adhesion + self.h2_barrier1 + 
+                             self.h3_interlayer + self.h4_barrier2 + self.h5_topcoat)
 
     def create_unit_cell_geometry(self):
         """Create 2D unit cell with periodic crack pattern"""
@@ -71,76 +78,89 @@ class GeometryGenerator:
             print("  Single sided: {}".format(self.single_sided))
             return
         
-        # Create 2D deformable part
-        part_name = 'UnitCell'
-        sketch = self.model.ConstrainedSketch(name=part_name+'_sketch', sheetSize=1.0)
-                    
-        # Unit cell width (crack spacing - center to center distance)
-        width = self.crack_spacing
+        if self.model is None:
+            raise ValueError("Model not set. Call set_model() first.")
         
-        # Create outer boundary
+        # Create 2D deformable part - simplified approach
+        part_name = 'UnitCell'
+        
+        # Create simple rectangular geometry for now
+        sketch = self.model.ConstrainedSketch(name=part_name+'_sketch', sheetSize=1.0)
+        width = self.crack_spacing
         sketch.rectangle(point1=(0.0, 0.0), point2=(width, self.total_height))
         
-        # Add crack geometry
-        self._add_cracks_to_sketch(sketch, width, self.total_height)
-        
-        # Create part
+        # Create base part
         part = self.model.Part(name=part_name, dimensionality=TWO_D_PLANAR, type=DEFORMABLE_BODY)
         part.BaseShell(sketch=sketch)
         
+        print("Created basic unit cell geometry: {:.1e} x {:.1e} m".format(width, self.total_height))
+        
         return part
 
-    def _add_cracks_to_sketch(self, sketch, width, height):
-        """Add through-thickness crack rectangles to sketch"""
+    def _create_crack_partitions(self, part, width):
+        """Create partitions to define crack regions"""
         if not ABAQUS_ENV:
             return
             
-        # Barrier 1 crack - through full barrier thickness
+        print("Creating partitions for crack regions...")
+        
+        # Barrier 1 crack parameters
         y1_bottom = self.h0_substrate + self.h1_adhesion
         y1_top = y1_bottom + self.h2_barrier1
-        x1_offset = 0.0  # Reference crack (no offset)
+        x1_offset = 0.0
         
-        # Barrier 2 crack - through full barrier thickness  
+        # Barrier 2 crack parameters
         y2_bottom = self.h0_substrate + self.h1_adhesion + self.h2_barrier1 + self.h3_interlayer
         y2_top = y2_bottom + self.h4_barrier2
         x2_offset = self.crack_offset * self.crack_spacing
         
-        # Create crack rectangles
-        crack_definitions = [
-            (y1_bottom, y1_top, x1_offset),  # Barrier 1 crack
-            (y2_bottom, y2_top, x2_offset)   # Barrier 2 crack
-        ]
+        # Create vertical partition lines for crack boundaries
+        self._create_vertical_partitions(part, width, x1_offset, "Crack1")
+        self._create_vertical_partitions(part, width, x2_offset, "Crack2")
         
-        for y_bottom, y_top, x_offset in crack_definitions:
-            crack_x1 = x_offset % width
-            crack_x2 = (x_offset + self.crack_width) % width
+        # Create horizontal partition lines at layer interfaces
+        self._create_horizontal_partitions(part, width)
+
+    def _create_vertical_partitions(self, part, width, x_offset, crack_name):
+        """Create vertical partition lines for a crack"""
+        crack_x1 = x_offset % width
+        crack_x2 = (x_offset + self.crack_width) % width
+        
+        # Skip if crack is too small
+        if abs(crack_x2 - crack_x1) < 1e-12:
+            print("Skipping {} - too narrow".format(crack_name))
+            return
             
-            if crack_x1 < crack_x2:
-                # Normal case - crack doesn't wrap around
-                crack_points = [
-                    (crack_x1, y_bottom),
-                    (crack_x2, y_bottom), 
-                    (crack_x2, y_top),
-                    (crack_x1, y_top)
-                ]
-                # Create rectangle
-                for i in range(4):
-                    p1 = crack_points[i]
-                    p2 = crack_points[(i+1) % 4]
-                    sketch.Line(point1=p1, point2=p2)
-            else:
-                # Crack wraps around unit cell boundary - create two rectangles
-                # Left part (from crack_x1 to width)
-                sketch.Line(point1=(crack_x1, y_bottom), point2=(width, y_bottom))
-                sketch.Line(point1=(width, y_bottom), point2=(width, y_top))  
-                sketch.Line(point1=(width, y_top), point2=(crack_x1, y_top))
-                sketch.Line(point1=(crack_x1, y_top), point2=(crack_x1, y_bottom))
-                
-                # Right part (from 0 to crack_x2)
-                sketch.Line(point1=(0.0, y_bottom), point2=(crack_x2, y_bottom))
-                sketch.Line(point1=(crack_x2, y_bottom), point2=(crack_x2, y_top))
-                sketch.Line(point1=(crack_x2, y_top), point2=(0.0, y_top))
-                sketch.Line(point1=(0.0, y_top), point2=(0.0, y_bottom))
+        try:
+            # Create vertical lines at crack boundaries
+            for i, x_pos in enumerate([crack_x1, crack_x2]):
+                if 1e-12 < x_pos < (width - 1e-12):  # Don't partition at boundaries
+                    sketch = self.model.ConstrainedSketch(name=crack_name + '_vert_{}'.format(i), sheetSize=1.0)
+                    sketch.Line(point1=(x_pos, 0.0), point2=(x_pos, self.total_height))
+                    part.PartitionFaceBySketch(faces=part.faces, sketch=sketch)
+                    print("Created vertical partition for {} at x={:.1e}".format(crack_name, x_pos))
+        except Exception as e:
+            print("Warning: Could not create vertical partitions for {}: {}".format(crack_name, str(e)))
+
+    def _create_horizontal_partitions(self, part, width):
+        """Create horizontal partition lines at layer interfaces"""
+        try:
+            # Layer interface positions
+            y_positions = [
+                self.h0_substrate,
+                self.h0_substrate + self.h1_adhesion,
+                self.h0_substrate + self.h1_adhesion + self.h2_barrier1,
+                self.h0_substrate + self.h1_adhesion + self.h2_barrier1 + self.h3_interlayer,
+                self.h0_substrate + self.h1_adhesion + self.h2_barrier1 + self.h3_interlayer + self.h4_barrier2
+            ]
+            
+            for i, y_pos in enumerate(y_positions):
+                sketch = self.model.ConstrainedSketch(name='layer_interface_{}'.format(i), sheetSize=1.0)
+                sketch.Line(point1=(0.0, y_pos), point2=(width, y_pos))
+                part.PartitionFaceBySketch(faces=part.faces, sketch=sketch)
+                print("Created horizontal partition at y={:.1e}".format(y_pos))
+        except Exception as e:
+            print("Warning: Could not create horizontal partitions: {}".format(str(e)))
 
     def create_materials(self):
         """Create ABAQUS materials"""
@@ -150,6 +170,9 @@ class GeometryGenerator:
                 diff = materials.get_diffusivity(mat_name)
                 print("  {}: D = {:.1e} m²/s".format(mat_name, diff))
             return
+        
+        if self.model is None:
+            raise ValueError("Model not set. Call set_model() first.")
             
         # Create materials with diffusion properties
         for mat_name, diffusivity in materials.diffusivities.items():
@@ -162,6 +185,9 @@ class GeometryGenerator:
         if not ABAQUS_ENV:
             print("Would assign material sections to part regions")
             return
+        
+        if self.model is None:
+            raise ValueError("Model not set. Call set_model() first.")
             
         # Create sections for each material
         for mat_name in materials.diffusivities.keys():
@@ -171,24 +197,38 @@ class GeometryGenerator:
                 material=mat_name,
                 thickness=None
             )
+        
+        # This will need to be implemented after partitioning the geometry
+        # into different regions for each layer and material type
+        # For now, sections are created but not assigned - 
+        # assignment should be done after partitioning in simulation_runner
 
     def create_mesh(self, part, element_size=None):
         """Create mesh with appropriate element type for diffusion"""
         if not ABAQUS_ENV:
             print("Would create mesh with DC2D4 elements")
             return
-            
+        
         # Set element type for mass diffusion
         part.setElementType(regions=(part.faces,), 
                            elemTypes=(ElemType(elemCode=DC2D4),))
         
-        # Seed part
+        # Calculate appropriate element size (in nanometers)
         if element_size is None:
-            element_size = min(self.crack_width, self.crack_spacing * 0.1)
+            # Use crack width or a reasonable fraction of spacing
+            # Ensure good resolution of crack features
+            element_size = min(self.crack_width/2, self.crack_spacing/20)
+            # But don't go below 10 nm for reasonable mesh density
+            element_size = max(10.0, element_size)
+        
+        print("Seeding part with element size: {:.1f} nm".format(element_size))
+        print("Geometry dimensions: width={:.1f} nm, height={:.1f} nm".format(
+            self.crack_spacing, self.total_height))
+        print("Crack width: {:.1f} nm".format(self.crack_width))
+        
+        # Seed part
         part.seedPart(size=element_size)
         
         # Generate mesh
         part.generateMesh()
-
-# Create global instance
-geometry = GeometryGenerator()
+        print("Mesh generated successfully")

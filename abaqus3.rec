@@ -1,0 +1,83 @@
+# -*- coding: mbcs -*-
+from part import *
+from material import *
+from section import *
+from assembly import *
+from mesh import *
+from step import *
+from load import *
+from job import *
+mdb.Model(name='PermeationModel')
+mdb.models['PermeationModel'].Material(name='PET')
+mdb.models['PermeationModel'].materials['PET'].Diffusivity(table=((1e-12, ), ))
+mdb.models['PermeationModel'].materials['PET'].Solubility(table=((1e-06, ), ))
+mdb.models['PermeationModel'].Material(name='interlayer')
+mdb.models['PermeationModel'].materials['interlayer'].Diffusivity(table=((
+    5e-11, ), ))
+mdb.models['PermeationModel'].materials['interlayer'].Solubility(table=((2e-06, 
+    ), ))
+mdb.models['PermeationModel'].Material(name='barrier')
+mdb.models['PermeationModel'].materials['barrier'].Diffusivity(table=((1e-16, 
+    ), ))
+mdb.models['PermeationModel'].materials['barrier'].Solubility(table=((1e-09, ), 
+    ))
+mdb.models['PermeationModel'].Material(name='air_crack')
+mdb.models['PermeationModel'].materials['air_crack'].Diffusivity(table=((
+    2.4e-05, ), ))
+mdb.models['PermeationModel'].materials['air_crack'].Solubility(table=((0.04, 
+    ), ))
+mdb.models['PermeationModel'].ConstrainedSketch(name='UnitCell_sketch', 
+    sheetSize=1.0)
+mdb.models['PermeationModel'].sketches['UnitCell_sketch'].rectangle(point1=(
+    0.0, 0.0), point2=(1e-05, 205.0000005))
+mdb.models['PermeationModel'].Part(dimensionality=TWO_D_PLANAR, name='UnitCell'
+    , type=DEFORMABLE_BODY)
+mdb.models['PermeationModel'].parts['UnitCell'].BaseShell(sketch=
+    mdb.models['PermeationModel'].sketches['UnitCell_sketch'])
+mdb.models['PermeationModel'].ConstrainedSketch(name='Crack1_vert_1', 
+    sheetSize=1.0)
+mdb.models['PermeationModel'].sketches['Crack1_vert_1'].Line(point1=(1e-07, 
+    0.0), point2=(1e-07, 205.0000005))
+mdb.models['PermeationModel'].parts['UnitCell'].PartitionFaceBySketch(faces=
+    mdb.models['PermeationModel'].parts['UnitCell'].faces, sketch=
+    mdb.models['PermeationModel'].sketches['Crack1_vert_1'])
+#* Feature creation failed.
+mdb.models['PermeationModel'].ConstrainedSketch(name='Crack2_vert_0', 
+    sheetSize=1.0)
+mdb.models['PermeationModel'].sketches['Crack2_vert_0'].Line(point1=(2.5e-06, 
+    0.0), point2=(2.5e-06, 205.0000005))
+mdb.models['PermeationModel'].parts['UnitCell'].PartitionFaceBySketch(faces=
+    mdb.models['PermeationModel'].parts['UnitCell'].faces, sketch=
+    mdb.models['PermeationModel'].sketches['Crack2_vert_0'])
+mdb.models['PermeationModel'].ConstrainedSketch(name='Crack2_vert_1', 
+    sheetSize=1.0)
+mdb.models['PermeationModel'].sketches['Crack2_vert_1'].Line(point1=(2.6e-06, 
+    0.0), point2=(2.6e-06, 205.0000005))
+mdb.models['PermeationModel'].parts['UnitCell'].PartitionFaceBySketch(faces=
+    mdb.models['PermeationModel'].parts['UnitCell'].faces, sketch=
+    mdb.models['PermeationModel'].sketches['Crack2_vert_1'])
+#* Feature creation failed.
+mdb.models['PermeationModel'].ConstrainedSketch(name='layer_interface_0', 
+    sheetSize=1.0)
+mdb.models['PermeationModel'].sketches['layer_interface_0'].Line(point1=(0.0, 
+    5e-07), point2=(1e-05, 5e-07))
+mdb.models['PermeationModel'].parts['UnitCell'].PartitionFaceBySketch(faces=
+    mdb.models['PermeationModel'].parts['UnitCell'].faces, sketch=
+    mdb.models['PermeationModel'].sketches['layer_interface_0'])
+#* Feature creation failed.
+mdb.models['PermeationModel'].HomogeneousSolidSection(material='PET', name=
+    'PET_section', thickness=None)
+mdb.models['PermeationModel'].HomogeneousSolidSection(material='interlayer', 
+    name='interlayer_section', thickness=None)
+mdb.models['PermeationModel'].HomogeneousSolidSection(material='barrier', name=
+    'barrier_section', thickness=None)
+mdb.models['PermeationModel'].HomogeneousSolidSection(material='air_crack', 
+    name='air_crack_section', thickness=None)
+mdb.models['PermeationModel'].ConstrainedSketch(name='partition_sketch', 
+    sheetSize=1.0)
+mdb.models['PermeationModel'].sketches['partition_sketch'].Line(point1=(0.0, 
+    5e-07), point2=(1e-05, 5e-07))
+mdb.models['PermeationModel'].parts['UnitCell'].PartitionFaceBySketch(faces=
+    mdb.models['PermeationModel'].parts['UnitCell'].faces, sketch=
+    mdb.models['PermeationModel'].sketches['partition_sketch'])
+#* Feature creation failed.

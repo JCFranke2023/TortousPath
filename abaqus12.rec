@@ -1,0 +1,74 @@
+# -*- coding: mbcs -*-
+from part import *
+from material import *
+from section import *
+from assembly import *
+from mesh import *
+from step import *
+from load import *
+from job import *
+mdb.Model(name='PermeationModel')
+mdb.models['PermeationModel'].Material(name='PET')
+mdb.models['PermeationModel'].materials['PET'].Diffusivity(table=((1000000.0, 
+    ), ))
+mdb.models['PermeationModel'].materials['PET'].Solubility(table=((1e-33, ), ))
+mdb.models['PermeationModel'].Material(name='interlayer')
+mdb.models['PermeationModel'].materials['interlayer'].Diffusivity(table=((
+    50000000.0, ), ))
+mdb.models['PermeationModel'].materials['interlayer'].Solubility(table=((2e-33, 
+    ), ))
+mdb.models['PermeationModel'].Material(name='barrier')
+mdb.models['PermeationModel'].materials['barrier'].Diffusivity(table=((0.01, ), 
+    ))
+mdb.models['PermeationModel'].materials['barrier'].Solubility(table=((1e-36, ), 
+    ))
+mdb.models['PermeationModel'].Material(name='air_crack')
+mdb.models['PermeationModel'].materials['air_crack'].Diffusivity(table=((
+    24000000000000.0, ), ))
+mdb.models['PermeationModel'].materials['air_crack'].Solubility(table=((4e-29, 
+    ), ))
+mdb.models['PermeationModel'].ConstrainedSketch(name='UnitCell_sketch', 
+    sheetSize=1.0)
+mdb.models['PermeationModel'].sketches['UnitCell_sketch'].rectangle(point1=(
+    0.0, 0.0), point2=(10000, 750))
+mdb.models['PermeationModel'].Part(dimensionality=TWO_D_PLANAR, name='UnitCell'
+    , type=DEFORMABLE_BODY)
+mdb.models['PermeationModel'].parts['UnitCell'].BaseShell(sketch=
+    mdb.models['PermeationModel'].sketches['UnitCell_sketch'])
+mdb.models['PermeationModel'].HomogeneousSolidSection(material='PET', name=
+    'PET_section', thickness=None)
+mdb.models['PermeationModel'].HomogeneousSolidSection(material='interlayer', 
+    name='interlayer_section', thickness=None)
+mdb.models['PermeationModel'].HomogeneousSolidSection(material='barrier', name=
+    'barrier_section', thickness=None)
+mdb.models['PermeationModel'].HomogeneousSolidSection(material='air_crack', 
+    name='air_crack_section', thickness=None)
+mdb.models['PermeationModel'].parts['UnitCell'].SectionAssignment(region=(
+    mdb.models['PermeationModel'].parts['UnitCell'].faces, ), sectionName=
+    'PET_section')
+mdb.models['PermeationModel'].rootAssembly.Instance(dependent=ON, name=
+    'UnitCell-1', part=mdb.models['PermeationModel'].parts['UnitCell'])
+mdb.models['PermeationModel'].parts['UnitCell'].setElementType(elemTypes=(
+    ElemType(elemCode=DC2D4, elemLibrary=STANDARD), ), regions=(
+    mdb.models['PermeationModel'].parts['UnitCell'].faces, ))
+mdb.models['PermeationModel'].parts['UnitCell'].seedPart(size=50.0)
+mdb.models['PermeationModel'].parts['UnitCell'].generateMesh()
+mdb.models['PermeationModel'].MassDiffusionStep(dcmax=1000.0, initialInc=1.0, 
+    maxInc=3600.0, minInc=1e-06, name='Permeation', previous='Initial', 
+    timePeriod=86400.0)
+mdb.models['PermeationModel'].rootAssembly.Surface(name='Top-Surface', 
+    side1Edges=
+    mdb.models['PermeationModel'].rootAssembly.instances['UnitCell-1'].edges.getSequenceFromMask(
+    mask=('[#4 ]', ), ))
+mdb.models['PermeationModel'].rootAssembly.Surface(name='Bottom-Surface', 
+    side1Edges=
+    mdb.models['PermeationModel'].rootAssembly.instances['UnitCell-1'].edges.getSequenceFromMask(
+    mask=('[#1 ]', ), ))
+mdb.models['PermeationModel'].rootAssembly.Surface(name='Left-Surface', 
+    side1Edges=
+    mdb.models['PermeationModel'].rootAssembly.instances['UnitCell-1'].edges.getSequenceFromMask(
+    mask=('[#8 ]', ), ))
+mdb.models['PermeationModel'].rootAssembly.Surface(name='Right-Surface', 
+    side1Edges=
+    mdb.models['PermeationModel'].rootAssembly.instances['UnitCell-1'].edges.getSequenceFromMask(
+    mask=('[#2 ]', ), ))
