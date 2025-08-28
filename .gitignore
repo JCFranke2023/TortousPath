@@ -205,3 +205,37 @@ cython_debug/
 marimo/_static/
 marimo/_lsp/
 __marimo__/
+
+# ABAQUS files and directories
+#  ABAQUS generates many temporary and output files during simulation
+#  All files are organized in the abaqus_files/ directory structure
+abaqus_files/
+
+# ABAQUS file extensions (in case any escape the organization)
+*.odb        # Output database files
+*.sta        # Status files  
+*.msg        # Message files
+*.dat        # Data files
+*.fil        # Results files
+*.res        # Restart files
+*.prt        # Part files
+*.com        # Complete ABAQUS/CAE commands
+*.jnl        # Journal files
+*.rec        # Recovery files
+*.mdl        # Model files
+*.stt        # Status files
+*.023        # Temporary files
+*.ipm        # Part manager files
+*.lck        # Lock files
+*.abq        # ABAQUS files
+*.inp        # Input files
+*.cae        # CAE database files
+*.rpy        # Replay files
+
+# ABAQUS temporary file patterns
+abaqus.rpy*
+aba_*
+
+# Simulation results and plots
+results_summary.json
+plots/

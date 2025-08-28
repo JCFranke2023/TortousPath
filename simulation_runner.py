@@ -7,6 +7,8 @@ import os
 import sys
 import json
 import time
+from pathlib import Path
+from file_organizer import ABQFileOrganizer
 from material_properties import materials
 from geometry_generator import GeometryGenerator
 
@@ -27,6 +29,8 @@ except ImportError:
 class SimulationRunner:
     def __init__(self, model_name='PermeationModel'):
         self.model_name = model_name
+        self.file_organizer = ABQFileOrganizer()
+        self.file_organizer.create_directory_structure()
         if ABAQUS_ENV:
             # Create or get existing model
             if model_name in mdb.models:
@@ -195,6 +199,10 @@ class SimulationRunner:
         # Wait for completion
         analysis_job.waitForCompletion()
         
+        print("Organizing output files for job: {}".format(job_name))
+        moved_files = self.file_organizer.organize_job(job_name)
+        print("Organized {} files".format(len(moved_files)))
+
         return job_name
 
     def run_single_simulation(self, parameters):
@@ -265,6 +273,24 @@ class SimulationRunner:
         """Load configuration from JSON file"""
         with open(config_file, 'r') as f:
             return json.load(f)
+        
+    def cleanup_simulation_files(self):
+        """Clean up all ABAQUS files in current directory"""
+        if self.file_organizer:
+            return self.file_organizer.cleanup_all_abaqus_files()
+        return []
+
+    def get_job_results_path(self, job_name):
+        """Get path to job results directory"""
+        if self.file_organizer:
+            return self.file_organizer.abq_dir / 'jobs' / job_name
+        return Path('.')
+
+    def archive_job(self, job_name):
+        """Archive completed job to reduce clutter"""
+        if self.file_organizer:
+            return self.file_organizer.archive_completed_job(job_name)
+        return None
 
 # Create global instance
 runner = SimulationRunner()
