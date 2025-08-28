@@ -203,6 +203,9 @@ class SimulationRunner:
         moved_files = self.file_organizer.organize_job(job_name)
         print("Organized {} files".format(len(moved_files)))
 
+        # Extract and analyze results automatically
+        self.extract_and_analyze_results(job_name)
+        
         return job_name
 
     def run_single_simulation(self, parameters):
@@ -291,6 +294,51 @@ class SimulationRunner:
         if self.file_organizer:
             return self.file_organizer.archive_completed_job(job_name)
         return None
+    
+    def extract_and_analyze_results(self, job_name):
+        """Extract data from ODB and trigger analysis"""
+        if not ABAQUS_ENV:
+            print("Would extract and analyze results for: {}".format(job_name))
+            return
+        
+        # Construct ODB path
+        odb_path = "./abaqus_files/results/{}.odb".format(job_name)
+        
+        if not os.path.exists(odb_path):
+            print("ODB file not found: {}".format(odb_path))
+            return False
+        
+        # Run extractor
+        print("Extracting data from ODB...")
+        try:
+            # Import and run extractor function
+            from abaqus_data_extractor import extract_raw_data
+            result_file = extract_raw_data(job_name, odb_path)
+            
+            if result_file:
+                print("Data extraction successful: {}".format(result_file))
+                
+                # Optionally trigger Python analysis
+                self._trigger_python_analysis(job_name)
+                return True
+            else:
+                print("Data extraction failed")
+                return False
+                
+        except Exception as e:
+            print("Error during extraction: {}".format(str(e)))
+            return False
+
+    def _trigger_python_analysis(self, job_name):
+        """Trigger Python analysis as subprocess"""
+        import subprocess
+        try:
+            # Run Python analyzer
+            cmd = ["python", "python_data_analyzer.py", "--job", job_name]
+            subprocess.run(cmd, check=True)
+            print("Python analysis completed")
+        except Exception as e:
+            print("Python analysis failed: {}".format(str(e)))
 
 # Create global instance
 runner = SimulationRunner()

@@ -2,6 +2,7 @@
 """
 Python data analyzer - runs in normal Python environment
 Analyzes raw data extracted from ABAQUS and creates reports/plots
+Now includes data cleanup and validation functionality
 """
 
 import os
@@ -34,26 +35,116 @@ class DataAnalyzer:
             print(f"Error loading raw data: {e}")
             return None
     
-    def process_flux_data(self, raw_data):
-        """Process raw flux data into time series"""
-        times = raw_data['times']
-        processed_flux = []
+    def clean_and_validate_data(self, raw_data):
+        """Clean and validate raw flux data"""
+        times = np.array(raw_data['times'])
+        cleaned_data = {
+            'original_frames': len(raw_data['flux_data']),
+            'valid_frames': 0,
+            'cleaned_times': [],
+            'cleaned_flux': [],
+            'issues_found': [],
+            'statistics': {}
+        }
         
-        for frame_data in raw_data['flux_data']:
+        for i, frame_data in enumerate(raw_data['flux_data']):
+            time = frame_data['time']
             flux_values = frame_data['flux_values']
+            valid_count = frame_data['valid_count']
             
-            if flux_values:
-                # Calculate statistics for this frame
-                avg_flux = np.mean(flux_values)
-                max_flux = np.max(flux_values)
-                
-                # Use max flux if average is very small (might be more meaningful)
-                final_flux = max_flux if avg_flux < 1e-15 else avg_flux
-                processed_flux.append(final_flux)
+            # Skip frames with no valid data
+            if valid_count == 0 or not flux_values:
+                cleaned_data['issues_found'].append(f"Frame {i}: No valid flux data")
+                continue
+            
+            # Clean flux values - remove invalid entries
+            valid_flux = []
+            for val in flux_values:
+                if isinstance(val, (int, float)) and not np.isnan(val) and not np.isinf(val):
+                    valid_flux.append(abs(val))  # Take absolute value
+            
+            if not valid_flux:
+                cleaned_data['issues_found'].append(f"Frame {i}: All flux values invalid")
+                continue
+            
+            # Calculate representative flux for this frame
+            flux_array = np.array(valid_flux)
+            
+            # Filter out extreme outliers (more than 3 standard deviations from mean)
+            if len(flux_array) > 1:
+                mean_flux = np.mean(flux_array)
+                std_flux = np.std(flux_array)
+                if std_flux > 0:
+                    outlier_mask = np.abs(flux_array - mean_flux) < 3 * std_flux
+                    flux_array = flux_array[outlier_mask]
+            
+            if len(flux_array) == 0:
+                cleaned_data['issues_found'].append(f"Frame {i}: All values were outliers")
+                continue
+            
+            # Choose representative value
+            # Use maximum flux if the range is very large (might indicate breakthrough)
+            # Use mean flux for steady conditions
+            flux_range = np.max(flux_array) - np.min(flux_array)
+            mean_val = np.mean(flux_array)
+            max_val = np.max(flux_array)
+            
+            if mean_val > 0 and flux_range / mean_val > 10:
+                # Large relative range - use max (potential breakthrough signature)
+                representative_flux = max_val
             else:
-                processed_flux.append(0.0)
+                # Use mean for stable conditions
+                representative_flux = mean_val
+            
+            cleaned_data['cleaned_times'].append(time)
+            cleaned_data['cleaned_flux'].append(representative_flux)
+            cleaned_data['valid_frames'] += 1
         
-        return np.array(times), np.array(processed_flux)
+        # Convert to numpy arrays
+        cleaned_data['cleaned_times'] = np.array(cleaned_data['cleaned_times'])
+        cleaned_data['cleaned_flux'] = np.array(cleaned_data['cleaned_flux'])
+        
+        # Calculate statistics
+        if len(cleaned_data['cleaned_flux']) > 0:
+            flux_array = cleaned_data['cleaned_flux']
+            cleaned_data['statistics'] = {
+                'total_frames_processed': cleaned_data['valid_frames'],
+                'data_quality_ratio': cleaned_data['valid_frames'] / cleaned_data['original_frames'],
+                'flux_min': float(np.min(flux_array)),
+                'flux_max': float(np.max(flux_array)),
+                'flux_mean': float(np.mean(flux_array)),
+                'flux_std': float(np.std(flux_array)),
+                'zero_flux_frames': int(np.sum(flux_array == 0.0)),
+                'nonzero_flux_frames': int(np.sum(flux_array > 0.0)),
+                'time_span_hours': float((cleaned_data['cleaned_times'][-1] - cleaned_data['cleaned_times'][0]) / 3600)
+            }
+        
+        return cleaned_data
+    
+    def process_flux_data(self, raw_data):
+        """Process and clean raw flux data into time series"""
+        # First clean the data
+        cleaned_data = self.clean_and_validate_data(raw_data)
+        
+        # Log data quality issues
+        if cleaned_data['issues_found']:
+            print(f"  Data quality issues found:")
+            for issue in cleaned_data['issues_found'][:5]:  # Show first 5
+                print(f"    {issue}")
+            if len(cleaned_data['issues_found']) > 5:
+                print(f"    ... and {len(cleaned_data['issues_found']) - 5} more issues")
+        
+        # Report statistics
+        stats = cleaned_data['statistics']
+        if stats:
+            print(f"  Data quality: {stats['data_quality_ratio']:.1%} frames valid")
+            print(f"  Flux range: {stats['flux_min']:.2e} to {stats['flux_max']:.2e}")
+            if stats['nonzero_flux_frames'] > 0:
+                print(f"  Non-zero flux detected in {stats['nonzero_flux_frames']} frames")
+            else:
+                print(f"  WARNING: All flux values are zero - check boundary conditions")
+        
+        return cleaned_data['cleaned_times'], cleaned_data['cleaned_flux'], cleaned_data
     
     def calculate_breakthrough_time(self, times, flux, threshold_fraction=0.01):
         """Calculate breakthrough time when flux reaches threshold of steady-state"""
@@ -104,6 +195,37 @@ class DataAnalyzer:
         lag_time = -intercept / slope
         return max(0, lag_time)
     
+    def diagnose_zero_flux(self, raw_data, cleaned_data):
+        """Diagnose why flux might be zero and suggest fixes"""
+        diagnosis = {
+            'likely_causes': [],
+            'suggestions': []
+        }
+        
+        # Check extraction statistics
+        extraction_info = raw_data.get('extraction_info', {})
+        if extraction_info.get('failed_frames', 0) > 0:
+            diagnosis['likely_causes'].append("Some frames failed during extraction")
+            diagnosis['suggestions'].append("Check ABAQUS ODB file integrity")
+        
+        # Check if MFL field was found
+        total_frames = extraction_info.get('successful_frames', 0)
+        if total_frames == 0:
+            diagnosis['likely_causes'].append("No MFL field data extracted")
+            diagnosis['suggestions'].append("Verify mass diffusion analysis was run")
+            diagnosis['suggestions'].append("Check if boundary conditions were applied")
+        
+        # Check data statistics
+        stats = cleaned_data.get('statistics', {})
+        if stats.get('zero_flux_frames', 0) == stats.get('total_frames_processed', 0):
+            diagnosis['likely_causes'].append("All flux values are exactly zero")
+            diagnosis['suggestions'].append("Check boundary conditions (inlet/outlet concentrations)")
+            diagnosis['suggestions'].append("Verify material diffusivities are not too small")
+            diagnosis['suggestions'].append("Check if simulation time is sufficient for diffusion")
+            diagnosis['suggestions'].append("Verify mesh quality and element types (DC2D4)")
+        
+        return diagnosis
+    
     def analyze_single_job(self, raw_data_file):
         """Analyze single job from raw data file"""
         print(f"Analyzing: {raw_data_file}")
@@ -115,12 +237,26 @@ class DataAnalyzer:
         
         job_name = raw_data['job_name']
         
-        # Process flux data
-        times, flux = self.process_flux_data(raw_data)
+        # Process and clean flux data
+        times, flux, cleaned_data = self.process_flux_data(raw_data)
         
         print(f"  Processed {len(times)} time points")
-        print(f"  Time range: {times[0]:.1f} to {times[-1]:.1f} seconds")
-        print(f"  Flux range: {flux.min():.2e} to {flux.max():.2e}")
+        if len(times) > 0:
+            print(f"  Time range: {times[0]:.1f} to {times[-1]:.1f} seconds")
+            print(f"  Flux range: {flux.min():.2e} to {flux.max():.2e}")
+        
+        # Diagnose issues if flux is all zero
+        diagnosis = None
+        if len(flux) == 0 or np.max(flux) == 0.0:
+            print(f"  WARNING: Zero flux detected - running diagnosis...")
+            diagnosis = self.diagnose_zero_flux(raw_data, cleaned_data)
+            
+            print(f"  Likely causes:")
+            for cause in diagnosis['likely_causes']:
+                print(f"    - {cause}")
+            print(f"  Suggestions:")
+            for suggestion in diagnosis['suggestions']:
+                print(f"    - {suggestion}")
         
         # Calculate metrics
         breakthrough_time, steady_flux = self.calculate_breakthrough_time(times, flux)
@@ -136,15 +272,22 @@ class DataAnalyzer:
                 'steady_state_flux': float(steady_flux) if steady_flux else None,
                 'lag_time': float(lag_time) if lag_time else None,
                 'lag_time_hours': float(lag_time/3600) if lag_time else None,
-                'total_time': float(times[-1]),
-                'total_time_hours': float(times[-1]/3600),
+                'total_time': float(times[-1]) if len(times) > 0 else None,
+                'total_time_hours': float(times[-1]/3600) if len(times) > 0 else None,
                 'data_points': len(times),
-                'max_flux': float(flux.max()),
-                'min_flux': float(flux.min()),
-                'has_meaningful_flux': float(flux.max()) > 1e-15
+                'max_flux': float(flux.max()) if len(flux) > 0 else 0.0,
+                'min_flux': float(flux.min()) if len(flux) > 0 else 0.0,
+                'has_meaningful_flux': float(flux.max()) > 1e-15 if len(flux) > 0 else False
             },
-            'time_data': times.tolist(),
-            'flux_data': flux.tolist(),
+            'time_data': times.tolist() if len(times) > 0 else [],
+            'flux_data': flux.tolist() if len(flux) > 0 else [],
+            'data_cleaning': {
+                'original_frames': cleaned_data.get('original_frames', 0),
+                'valid_frames': cleaned_data.get('valid_frames', 0),
+                'issues_found': cleaned_data.get('issues_found', []),
+                'statistics': cleaned_data.get('statistics', {})
+            },
+            'diagnosis': diagnosis,
             'extraction_info': raw_data.get('extraction_info', {})
         }
         
@@ -167,9 +310,13 @@ class DataAnalyzer:
         return results
     
     def create_flux_plot(self, results, show_plot=False):
-        """Create flux vs time plot"""
+        """Create flux vs time plot with diagnostics"""
         times = np.array(results['time_data'])
         flux = np.array(results['flux_data'])
+        
+        if len(times) == 0:
+            print("  No data to plot")
+            return None
         
         # Convert to hours for plotting
         times_hours = times / 3600
@@ -199,6 +346,12 @@ class DataAnalyzer:
             plt.axhline(y=analysis['steady_state_flux'], color='orange', 
                        linestyle='-', alpha=0.5, 
                        label=f'Steady-state flux ({analysis["steady_state_flux"]:.2e})')
+        
+        # Add diagnostic info if flux is zero
+        if not analysis['has_meaningful_flux']:
+            plt.text(0.5, 0.8, 'WARNING: Zero flux detected\nCheck boundary conditions', 
+                    transform=plt.gca().transAxes, fontsize=12, color='red',
+                    bbox=dict(boxstyle="round,pad=0.3", facecolor="yellow", alpha=0.7))
         
         plt.legend()
         
@@ -363,4 +516,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-    

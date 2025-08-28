@@ -94,6 +94,33 @@
     0.0,
     0.0
   ],
+  "data_cleaning": {
+    "original_frames": 38,
+    "valid_frames": 38,
+    "issues_found": [],
+    "statistics": {
+      "total_frames_processed": 38,
+      "data_quality_ratio": 1.0,
+      "flux_min": 0.0,
+      "flux_max": 0.0,
+      "flux_mean": 0.0,
+      "flux_std": 0.0,
+      "zero_flux_frames": 38,
+      "nonzero_flux_frames": 0,
+      "time_span_hours": 24.0
+    }
+  },
+  "diagnosis": {
+    "likely_causes": [
+      "All flux values are exactly zero"
+    ],
+    "suggestions": [
+      "Check boundary conditions (inlet/outlet concentrations)",
+      "Verify material diffusivities are not too small",
+      "Check if simulation time is sufficient for diffusion",
+      "Verify mesh quality and element types (DC2D4)"
+    ]
+  },
   "extraction_info": {
     "mfl_values_per_frame": 12000,
     "successful_frames": 38,
