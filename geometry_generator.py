@@ -81,86 +81,108 @@ class GeometryGenerator:
         if self.model is None:
             raise ValueError("Model not set. Call set_model() first.")
         
-        # Create 2D deformable part - simplified approach
+        # Create 2D deformable part
         part_name = 'UnitCell'
-        
-        # Create simple rectangular geometry for now
-        sketch = self.model.ConstrainedSketch(name=part_name+'_sketch', sheetSize=1.0)
         width = self.crack_spacing
+        
+        # Create base rectangular geometry
+        sketch = self.model.ConstrainedSketch(name=part_name+'_sketch', sheetSize=1.0)
         sketch.rectangle(point1=(0.0, 0.0), point2=(width, self.total_height))
         
         # Create base part
         part = self.model.Part(name=part_name, dimensionality=TWO_D_PLANAR, type=DEFORMABLE_BODY)
         part.BaseShell(sketch=sketch)
         
-        print("Created basic unit cell geometry: {:.1e} x {:.1e} m".format(width, self.total_height))
+        # Create partitions for layers and cracks
+        self._create_layer_partitions(part, width)
+        self._create_crack_partitions(part, width)
+        
+        print("Created multilayer unit cell: {:.1e} x {:.1e} m".format(width, self.total_height))
         
         return part
 
-    def _create_crack_partitions(self, part, width):
-        """Create partitions to define crack regions"""
+    def _create_layer_partitions(self, part, width):
+        """Create horizontal partitions to define different material layers"""
         if not ABAQUS_ENV:
             return
             
-        print("Creating partitions for crack regions...")
+        print("Creating layer partitions...")
         
-        # Barrier 1 crack parameters
-        y1_bottom = self.h0_substrate + self.h1_adhesion
-        y1_top = y1_bottom + self.h2_barrier1
-        x1_offset = 0.0
+        # Layer interface positions (y-coordinates from bottom)
+        y_positions = []
+        y_current = 0.0
         
-        # Barrier 2 crack parameters
-        y2_bottom = self.h0_substrate + self.h1_adhesion + self.h2_barrier1 + self.h3_interlayer
-        y2_top = y2_bottom + self.h4_barrier2
-        x2_offset = self.crack_offset * self.crack_spacing
+        # Build y-coordinates for each layer interface
+        layer_thicknesses = [
+            self.h0_substrate,    # PET substrate bottom
+            self.h1_adhesion,     # Adhesion promoter
+            self.h2_barrier1,     # Barrier 1 (has cracks)
+            self.h3_interlayer,   # Interlayer
+            self.h4_barrier2,     # Barrier 2 (has cracks)
+            self.h5_topcoat       # Top coat
+        ]
         
-        # Create vertical partition lines for crack boundaries
-        self._create_vertical_partitions(part, width, x1_offset, "Crack1")
-        self._create_vertical_partitions(part, width, x2_offset, "Crack2")
+        for thickness in layer_thicknesses[:-1]:  # Don't partition at very top
+            y_current += thickness
+            y_positions.append(y_current)
         
         # Create horizontal partition lines at layer interfaces
-        self._create_horizontal_partitions(part, width)
-
-    def _create_vertical_partitions(self, part, width, x_offset, crack_name):
-        """Create vertical partition lines for a crack"""
-        crack_x1 = x_offset % width
-        crack_x2 = (x_offset + self.crack_width) % width
-        
-        # Skip if crack is too small
-        if abs(crack_x2 - crack_x1) < 1e-12:
-            print("Skipping {} - too narrow".format(crack_name))
-            return
-            
-        try:
-            # Create vertical lines at crack boundaries
-            for i, x_pos in enumerate([crack_x1, crack_x2]):
-                if 1e-12 < x_pos < (width - 1e-12):  # Don't partition at boundaries
-                    sketch = self.model.ConstrainedSketch(name=crack_name + '_vert_{}'.format(i), sheetSize=1.0)
-                    sketch.Line(point1=(x_pos, 0.0), point2=(x_pos, self.total_height))
-                    part.PartitionFaceBySketch(faces=part.faces, sketch=sketch)
-                    print("Created vertical partition for {} at x={:.1e}".format(crack_name, x_pos))
-        except Exception as e:
-            print("Warning: Could not create vertical partitions for {}: {}".format(crack_name, str(e)))
-
-    def _create_horizontal_partitions(self, part, width):
-        """Create horizontal partition lines at layer interfaces"""
-        try:
-            # Layer interface positions
-            y_positions = [
-                self.h0_substrate,
-                self.h0_substrate + self.h1_adhesion,
-                self.h0_substrate + self.h1_adhesion + self.h2_barrier1,
-                self.h0_substrate + self.h1_adhesion + self.h2_barrier1 + self.h3_interlayer,
-                self.h0_substrate + self.h1_adhesion + self.h2_barrier1 + self.h3_interlayer + self.h4_barrier2
-            ]
-            
-            for i, y_pos in enumerate(y_positions):
+        for i, y_pos in enumerate(y_positions):
+            try:
                 sketch = self.model.ConstrainedSketch(name='layer_interface_{}'.format(i), sheetSize=1.0)
                 sketch.Line(point1=(0.0, y_pos), point2=(width, y_pos))
                 part.PartitionFaceBySketch(faces=part.faces, sketch=sketch)
-                print("Created horizontal partition at y={:.1e}".format(y_pos))
-        except Exception as e:
-            print("Warning: Could not create horizontal partitions: {}".format(str(e)))
+                print("Created layer partition at y={:.1e}".format(y_pos))
+            except Exception as e:
+                print("Warning: Could not create layer partition at y={:.1e}: {}".format(y_pos, str(e)))
+
+    def _create_crack_partitions(self, part, width):
+        """Create partitions to define crack regions in barrier layers only"""
+        if not ABAQUS_ENV:
+            return
+            
+        print("Creating crack partitions...")
+        
+        # Barrier 1 crack parameters (only if layer thickness > 0)
+        if self.h2_barrier1 > 0:
+            y1_bottom = self.h0_substrate + self.h1_adhesion
+            y1_top = y1_bottom + self.h2_barrier1
+            x1_offset = 0.0  # First barrier has no offset
+            self._create_vertical_crack_partitions(part, width, x1_offset, y1_bottom, y1_top, "Barrier1")
+        
+        # Barrier 2 crack parameters (only if layer thickness > 0)
+        if self.h4_barrier2 > 0:
+            y2_bottom = self.h0_substrate + self.h1_adhesion + self.h2_barrier1 + self.h3_interlayer
+            y2_top = y2_bottom + self.h4_barrier2
+            x2_offset = self.crack_offset * self.crack_spacing  # Second barrier is offset
+            self._create_vertical_crack_partitions(part, width, x2_offset, y2_bottom, y2_top, "Barrier2")
+
+    def _create_vertical_crack_partitions(self, part, width, x_offset, y_bottom, y_top, layer_name):
+        """Create vertical partition lines for cracks within a specific layer"""
+        # Calculate crack boundaries with periodic wrapping
+        crack_x1 = x_offset % width
+        crack_x2 = (x_offset + self.crack_width) % width
+        
+        # Handle periodic wrapping case
+        if crack_x2 < crack_x1:
+            # Crack wraps around - create two partitions
+            crack_positions = [crack_x2, crack_x1]
+        else:
+            # Normal case - crack within bounds
+            crack_positions = [crack_x1, crack_x2]
+        
+        # Create vertical partitions only within the barrier layer
+        for i, x_pos in enumerate(crack_positions):
+            # Skip partitions exactly at domain boundaries
+            if 1e-12 < x_pos < (width - 1e-12):
+                try:
+                    sketch = self.model.ConstrainedSketch(name='{}_crack_{}'.format(layer_name, i), sheetSize=1.0)
+                    sketch.Line(point1=(x_pos, y_bottom), point2=(x_pos, y_top))
+                    part.PartitionFaceBySketch(faces=part.faces, sketch=sketch)
+                    print("Created {} crack partition at x={:.1e} (y={:.1e} to {:.1e})".format(
+                        layer_name, x_pos, y_bottom, y_top))
+                except Exception as e:
+                    print("Warning: Could not create {} crack partition: {}".format(layer_name, str(e)))
 
     def create_materials(self):
         """Create ABAQUS materials"""
@@ -180,10 +202,10 @@ class GeometryGenerator:
             mat.Diffusivity(table=((diffusivity, ),))
             mat.Solubility(table=((materials.get_solubility(mat_name), ),))
 
-    def assign_sections(self, part):
-        """Create sections and assign to part regions"""
+    def assign_sections(self, part=None):
+        """Create sections for each material (part parameter not used)"""
         if not ABAQUS_ENV:
-            print("Would assign material sections to part regions")
+            print("Would create material sections")
             return
         
         if self.model is None:
@@ -197,11 +219,142 @@ class GeometryGenerator:
                 material=mat_name,
                 thickness=None
             )
+            print("Created section: {}".format(section_name))
+
+    def assign_materials_to_regions(self, part, instance):
+        """Assign different materials to different regions of the geometry"""
+        if not ABAQUS_ENV:
+            print("Would assign materials to layer regions")
+            return
         
-        # This will need to be implemented after partitioning the geometry
-        # into different regions for each layer and material type
-        # For now, sections are created but not assigned - 
-        # assignment should be done after partitioning in simulation_runner
+        if self.model is None:
+            raise ValueError("Model not set. Call set_model() first.")
+        
+        print("Assigning materials to regions...")
+        
+        # Get material sections
+        sections = {
+            'PET': 'PET_section',
+            'interlayer': 'interlayer_section', 
+            'barrier': 'barrier_section',
+            'air_crack': 'air_crack_section'
+        }
+        
+        # Calculate layer boundaries for region selection
+        layer_boundaries = self._calculate_layer_boundaries()
+        
+        # Assign materials to each layer
+        self._assign_layer_materials(part, instance, layer_boundaries, sections)
+
+    def _calculate_layer_boundaries(self):
+        """Calculate y-coordinates of layer boundaries"""
+        boundaries = {}
+        y_current = 0.0
+        
+        # Calculate boundaries for each layer
+        boundaries['substrate'] = (y_current, y_current + self.h0_substrate)
+        y_current += self.h0_substrate
+        
+        boundaries['adhesion'] = (y_current, y_current + self.h1_adhesion)  
+        y_current += self.h1_adhesion
+        
+        boundaries['barrier1'] = (y_current, y_current + self.h2_barrier1)
+        y_current += self.h2_barrier1
+        
+        boundaries['interlayer'] = (y_current, y_current + self.h3_interlayer)
+        y_current += self.h3_interlayer
+        
+        boundaries['barrier2'] = (y_current, y_current + self.h4_barrier2) 
+        y_current += self.h4_barrier2
+        
+        boundaries['topcoat'] = (y_current, y_current + self.h5_topcoat)
+        
+        return boundaries
+
+    def _assign_layer_materials(self, part, instance, boundaries, sections):
+        """Assign materials to specific layer regions"""
+        width = self.crack_spacing
+        
+        # Material assignment for each layer
+        layer_materials = {
+            'substrate': 'PET',
+            'adhesion': 'interlayer', 
+            'barrier1': 'barrier',
+            'interlayer': 'interlayer',
+            'barrier2': 'barrier',
+            'topcoat': 'interlayer'
+        }
+        
+        for layer_name, material_name in layer_materials.items():
+            if layer_name not in boundaries:
+                continue
+                
+            y_bottom, y_top = boundaries[layer_name]
+            y_mid = (y_bottom + y_top) / 2
+            
+            # Skip layers with zero thickness
+            if abs(y_top - y_bottom) < 1e-12:
+                continue
+        
+            section_name = sections[material_name]
+            
+            # For barrier layers, need to assign different materials to crack vs solid regions
+            if layer_name in ['barrier1', 'barrier2']:
+                self._assign_barrier_materials(part, instance, layer_name, y_mid, width, sections)
+            else:
+                # For non-barrier layers, assign uniform material
+                try:
+                    # Find faces in this layer
+                    sample_point = (width/2, y_mid, 0.0)
+                    faces = part.faces.findAt((sample_point,))
+                    if faces:
+                        region = (faces,)
+                        part.SectionAssignment(region=region, sectionName=section_name)
+                        print("Assigned {} to {}".format(material_name, layer_name))
+                except Exception as e:
+                    print("Warning: Could not assign material to {}: {}".format(layer_name, str(e)))
+
+    def _assign_barrier_materials(self, part, instance, layer_name, y_mid, width, sections):
+        """Assign materials to barrier layer regions (solid barrier vs air cracks)"""
+        # Determine crack boundaries for this barrier layer
+        if layer_name == 'barrier1':
+            x_offset = 0.0
+        else:  # barrier2
+            x_offset = self.crack_offset * self.crack_spacing
+        
+        crack_x1 = x_offset % width
+        crack_x2 = (x_offset + self.crack_width) % width
+        
+        # Handle periodic wrapping
+        if crack_x2 < crack_x1:
+            # Crack wraps around domain
+            crack_regions = [(0.0, crack_x2), (crack_x1, width)]
+        else:
+            # Normal crack within domain
+            crack_regions = [(crack_x1, crack_x2)]
+        
+        # Try to assign air material to crack regions and barrier material to solid regions
+        try:
+            # Find all faces in this barrier layer
+            all_faces = []
+            for x_sample in [width/4, width/2, 3*width/4]:
+                sample_point = (x_sample, y_mid, 0.0)
+                try:
+                    face = part.faces.findAt((sample_point,))
+                    if face and face not in all_faces:
+                        all_faces.extend(face)
+                except:
+                    pass
+            
+            if all_faces:
+                # For now, assign barrier material to all faces
+                # TODO: Implement more sophisticated crack vs solid detection
+                region = tuple(all_faces)
+                part.SectionAssignment(region=region, sectionName=sections['barrier'])
+                print("Assigned barrier material to {} (simplified assignment)".format(layer_name))
+            
+        except Exception as e:
+            print("Warning: Could not assign materials to {}: {}".format(layer_name, str(e)))
 
     def create_mesh(self, part, element_size=None):
         """Create mesh with appropriate element type for diffusion"""
@@ -213,22 +366,86 @@ class GeometryGenerator:
         part.setElementType(regions=(part.faces,), 
                            elemTypes=(ElemType(elemCode=DC2D4),))
         
-        # Calculate appropriate element size (in nanometers)
+        # Calculate appropriate element size (in meters)
         if element_size is None:
             # Use crack width or a reasonable fraction of spacing
             # Ensure good resolution of crack features
             element_size = min(self.crack_width/2, self.crack_spacing/20)
-            # But don't go below 10 nm for reasonable mesh density
-            element_size = max(10.0, element_size)
+            # But don't go below 1 nm for reasonable mesh density
+            element_size = max(1e-9, element_size)
         
-        print("Seeding part with element size: {:.1f} nm".format(element_size))
-        print("Geometry dimensions: width={:.1f} nm, height={:.1f} nm".format(
+        print("Seeding part with element size: {:.1e} m".format(element_size))
+        print("Geometry dimensions: width={:.1e} m, height={:.1e} m".format(
             self.crack_spacing, self.total_height))
-        print("Crack width: {:.1f} nm".format(self.crack_width))
+        print("Crack width: {:.1e} m".format(self.crack_width))
         
-        # Seed part
-        part.seedPart(size=element_size)
+        # Seed part with refined crack regions
+        self._create_refined_mesh(part, element_size)
         
         # Generate mesh
         part.generateMesh()
         print("Mesh generated successfully")
+
+    def _create_refined_mesh(self, part, base_element_size):
+        """Create refined mesh with finer elements in crack regions"""
+        if not ABAQUS_ENV:
+            return
+        
+        try:
+            # Global seed first
+            part.seedPart(size=base_element_size)
+            
+            # Create finer seeds along crack edges if possible
+            crack_element_size = base_element_size / 2
+            
+            # This would need more sophisticated edge detection
+            # For now, use uniform seeding
+            print("Using uniform mesh seeding (crack refinement not implemented)")
+            
+        except Exception as e:
+            print("Warning: Could not create refined mesh: {}".format(str(e)))
+            # Fall back to basic uniform seeding
+            part.seedPart(size=base_element_size)
+
+    def get_layer_info(self):
+        """Return layer information for debugging/reporting"""
+        layer_info = {
+            'total_height': self.total_height,
+            'layers': [
+                {'name': 'substrate', 'thickness': self.h0_substrate, 'material': 'PET'},
+                {'name': 'adhesion', 'thickness': self.h1_adhesion, 'material': 'interlayer'},
+                {'name': 'barrier1', 'thickness': self.h2_barrier1, 'material': 'barrier', 'has_cracks': True},
+                {'name': 'interlayer', 'thickness': self.h3_interlayer, 'material': 'interlayer'},
+                {'name': 'barrier2', 'thickness': self.h4_barrier2, 'material': 'barrier', 'has_cracks': True},
+                {'name': 'topcoat', 'thickness': self.h5_topcoat, 'material': 'interlayer'}
+            ],
+            'crack_parameters': {
+                'width': self.crack_width,
+                'spacing': self.crack_spacing,
+                'offset': self.crack_offset
+            }
+        }
+        return layer_info
+
+    def print_geometry_summary(self):
+        """Print summary of geometry configuration"""
+        info = self.get_layer_info()
+        
+        print("=== Geometry Summary ===")
+        print("Total height: {:.1e} m".format(info['total_height']))
+        print("Crack spacing: {:.1e} m".format(self.crack_spacing))
+        print("Crack width: {:.1e} m".format(self.crack_width))
+        print("Crack offset: {:.2f}".format(self.crack_offset))
+        
+        print("\nLayer stack (bottom to top):")
+        y_pos = 0.0
+        for layer in info['layers']:
+            if layer['thickness'] > 0:
+                print("  {}: {:.1e} m ({}){}".format(
+                    layer['name'], layer['thickness'], layer['material'],
+                    " - with cracks" if layer.get('has_cracks') else ""
+                ))
+                y_pos += layer['thickness']
+        
+        print("=== End Summary ===")
+        

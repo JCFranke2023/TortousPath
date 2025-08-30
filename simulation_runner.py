@@ -69,26 +69,24 @@ class SimulationRunner:
             single_sided=True
         )
         
-        # Create materials first
+        # Step 1: Create materials first (defines material properties)
         self.geometry.create_materials()
         
-        # Create geometry
+        # Step 2: Create sections (links materials to section definitions)
+        # Note: Pass None for part since sections are created before geometry
+        self.geometry.assign_sections(None)
+        
+        # Step 3: Create geometry with partitions
         part = self.geometry.create_unit_cell_geometry()
         
-        # Create sections 
-        self.geometry.assign_sections(part)
-        
-        # For now, assign a single material to get the simulation running
-        # We'll add complex material assignment later
-        pet_section = self.model.sections['PET_section']
-        part.SectionAssignment(region=(part.faces,), sectionName='PET_section')
-        print("Assigned PET material to entire geometry")
-        
-        # Create assembly
+        # Step 4: Create assembly instance
         assembly = self.model.rootAssembly
         instance = assembly.Instance(name='UnitCell-1', part=part, dependent=ON)
         
-        # Create mesh
+        # Step 5: Assign sections to geometry regions (uses the sections created in step 2)
+        self.geometry.assign_materials_to_regions(part, instance)
+        
+        # Step 6: Create mesh
         self.geometry.create_mesh(part)
         
         return instance
