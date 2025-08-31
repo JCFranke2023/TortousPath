@@ -1,0 +1,10 @@
+# -*- coding: mbcs -*-
+from part import *
+from material import *
+from section import *
+from assembly import *
+from mesh import *
+from step import *
+from load import *
+from job import *
+mdb.Model(name='PermeationModel')

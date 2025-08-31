@@ -35,6 +35,7 @@ class ABQFileOrganizer:
             '.inp',     # Input files
             '.cae',     # CAE database
             '.rpy',     # Replay files
+            '.env',     # Environment files
         ]
     
     def create_directory_structure(self):
