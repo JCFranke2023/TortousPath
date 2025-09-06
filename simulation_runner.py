@@ -182,18 +182,8 @@ class SimulationRunner:
             step_time = time.time() - step_start
             log_message("  Assembly creation completed ({:.2f}s)".format(step_time), self.log_file)
             
-            # Step 6: Create mesh
-            log_message("Step 6: Creating mesh...", self.log_file)
-            step_start = time.time()
-            
-            self.geometry.create_mesh(part)
-            log_message("  Mesh created successfully", self.log_file)
-            
-            step_time = time.time() - step_start
-            log_message("  Mesh creation completed ({:.2f}s)".format(step_time), self.log_file)
-            
-            # Step 7: Assign materials to regions
-            log_message("Step 7: Assigning materials to regions...", self.log_file)
+            # Step 6: Assign materials to regions (before meshing)
+            log_message("Step 6: Assigning materials to regions...", self.log_file)
             step_start = time.time()
             
             self.geometry.assign_materials_to_regions(part, instance)
@@ -201,6 +191,13 @@ class SimulationRunner:
             
             step_time = time.time() - step_start
             log_message("  Material assignment completed ({:.2f}s)".format(step_time), self.log_file)
+            
+            # Step 7: Create mesh (after material assignment)
+            log_message("Step 7: Creating mesh...", self.log_file)
+            step_start = time.time()
+            
+            self.geometry.create_mesh(part)
+            log_message("  Mesh created successfully", self.log_file)
             
             # Step 8: Final model verification
             log_message("Step 8: Final model verification...", self.log_file)
@@ -1159,36 +1156,6 @@ class SimulationRunner:
         except Exception as e:
             log_message("ERROR during file cleanup: {}".format(str(e)), self.log_file)
             return []
-
-    def get_job_results_path(self, job_name):
-        """Get path to job results directory"""
-        if self.file_organizer:
-            results_path = self.file_organizer.abq_dir / 'jobs' / job_name
-            log_message("Job results path: {}".format(results_path), self.log_file)
-            return results_path
-        return Path('.')
-
-    def archive_job(self, job_name):
-        """Archive completed job to reduce clutter"""
-        log_message("Archiving job: {}".format(job_name), self.log_file)
-        
-        try:
-            if self.file_organizer:
-                archive_path = self.file_organizer.archive_completed_job(job_name)
-                
-                if archive_path:
-                    log_message("Job archived successfully: {}".format(archive_path), self.log_file)
-                else:
-                    log_message("Job archival failed", self.log_file)
-                
-                return archive_path
-            else:
-                log_message("No file organizer available for archival", self.log_file)
-                return None
-                
-        except Exception as e:
-            log_message("ERROR archiving job: {}".format(str(e)), self.log_file)
-            return None
 
 # Create global instance
 log_message("Creating global SimulationRunner instance...", LOG_FILE)
