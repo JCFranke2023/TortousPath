@@ -1,215 +1,27 @@
 === SIMULATION RUNNER STARTED ===
 ABAQUS environment detected
-Creating global SimulationRunner instance...
-SimulationRunner initialized with model: PermeationModel
-File organization structure created
-Created new ABAQUS model: PermeationModel
-GeometryGenerator initialized with model
-Simulation parameters initialized:
-  total_time: 86400.0 s (24.0 hours)
-  initial_increment: 1.0 s
-  max_increment: 3600.0 s (60.0 min)
-  min_increment: 1e-06 s
-  dcmax: 1000.0
-  inlet_concentration: 1.0
-  outlet_concentration: 0.0
-SimulationRunner instance created successfully
-=== MAIN EXECUTION STARTED ===
-Starting PECVD barrier permeation simulation...
-Units: nanometers, seconds
-Running default simulation with parameters:
-  crack_width: 100.0 nm
-  crack_spacing: 10000.0 nm
-  crack_offset: 0.25
-=== STARTING SINGLE SIMULATION ===
-Simulation parameters (all nanometers):
-  crack_width: 100.0 nm
-  crack_spacing: 10000.0 nm (10.0 um)
-  crack_offset: 0.25 (25.0% of spacing)
-Expected simulation characteristics:
-  crack area fraction: 1.000%
-Phase 1: Model setup
-=== SETTING UP MODEL (NANOMETER UNITS) ===
-Input parameters (all in nanometers):
-  crack_width: 100.0 nm
-  crack_spacing: 10000.0 nm (10.0 um)
-  crack_offset: 0.25
-Step 1: Setting geometry parameters...
-  Geometry parameters set successfully (0.00s)
-Step 2: Creating materials...
-  Verifying materials creation:
-    Expected materials: ['PET', 'interlayer', 'barrier', 'air_crack']
-    Created materials: ['PET', 'air_crack', 'barrier', 'interlayer']
-    All materials created successfully
-    PET: D=1.0e+06 m²/s, S=1.0e-33 mol/m³/Pa
-    air_crack: D=2.4e+13 m²/s, S=4.0e-29 mol/m³/Pa
-    barrier: D=1.0e-02 m²/s, S=1.0e-36 mol/m³/Pa
-    interlayer: D=5.0e+07 m²/s, S=2.0e-33 mol/m³/Pa
-  Materials created successfully (0.01s)
-Step 3: Creating sections...
-  Verifying sections creation:
-    Expected sections: ['PET_section', 'interlayer_section', 'barrier_section', 'air_crack_section']
-    Created sections: ['PET_section', 'air_crack_section', 'barrier_section', 'interlayer_section']
-    All sections created successfully
-  Sections created successfully (0.01s)
-Step 4: Creating unit cell geometry...
-  Unit cell geometry created: 9 faces, 28 edges, 20 vertices
-  Geometry details:
-    Total faces: 9
-    Total edges: 28
-    Total vertices: 20
-    Edges (first 10, coordinates in nm):
-      Edge 0: (2600.0,650.0) to (2600.0,700.0) nm
-      Edge 1: (2600.0,650.0) to (10000.0,650.0) nm
-      Edge 2: (10000.0,700.0) to (10000.0,650.0) nm
-      Edge 3: (2600.0,700.0) to (10000.0,700.0) nm
-      Edge 4: (2500.0,700.0) to (2600.0,700.0) nm
-      Edge 5: (2500.0,650.0) to (2500.0,700.0) nm
-      Edge 6: (2500.0,650.0) to (2600.0,650.0) nm
-      Edge 7: (100.0,550.0) to (100.0,600.0) nm
-      Edge 8: (100.0,550.0) to (10000.0,550.0) nm
-      Edge 9: (10000.0,600.0) to (10000.0,550.0) nm
-      ... (18 more edges)
-  Geometry creation completed (0.10s)
-Step 5: Creating assembly instance...
-  Assembly instance created: UnitCell-1
-  Assembly creation completed (0.00s)
-Step 6: Assigning materials to regions...
-  Verifying section assignments:
-    Total faces: 9
-    Section assignments: 9
-      Assignment 0: barrier_section -> 4 faces
-      Assignment 1: air_crack_section -> 4 faces
-      Assignment 2: barrier_section -> 4 faces
-      Assignment 3: barrier_section -> 4 faces
-      Assignment 4: interlayer_section -> 4 faces
-      Assignment 5: air_crack_section -> 4 faces
-      Assignment 6: interlayer_section -> 4 faces
-      Assignment 7: PET_section -> 4 faces
-      Assignment 8: interlayer_section -> 4 faces
-    Section assignment summary:
-      Total faces: 9
-      Assigned faces: 36
-      Unassigned faces: -27
-        barrier_section: 12 faces (133.3%)
-        air_crack_section: 8 faces (88.9%)
-        interlayer_section: 12 faces (133.3%)
-        PET_section: 4 faces (44.4%)
-    SUCCESS: All faces have section assignments
-  Material assignment completed (0.04s)
-Step 7: Creating mesh...
-  Mesh created successfully
-  Assembly regenerated with mesh
-Step 8: Final model verification...
-  Final model verification:
-    Model components:
-      Materials: 4
-      Sections: 4
-      Parts: 1
-      Assembly instances: 1
-    Model readiness checks:
-      Materials created: PASS
-      Sections created: PASS
-      Geometry created: PASS
-      Sections assigned: PASS
-    MODEL IS READY FOR ANALYSIS
-=== MODEL SETUP COMPLETED (0.2s total) ===
-  Model setup completed (0.2s)
-Phase 2: Analysis step creation
-=== CREATING ANALYSIS STEP ===
-Mass diffusion step created successfully (0.01s):
-  name: Permeation
-  timePeriod: 86400.0 s (24.0 hours)
-  initialInc: 1.0 s
-  maxInc: 3600.0 s (60.0 min)
-  minInc: 1e-06 s
-  dcmax: 1000.0
-  Step verification: SUCCESS
-  Analysis step creation completed (0.0s)
-Phase 2b: Output requests
-Creating output requests...
-  Field output request created: NNC, MFL, IVOL
-  Output requests configured successfully
-  Output requests creation completed (0.0s)
-Phase 3: Surface creation
-=== CREATING SURFACES ===
-Geometry parameters for surface creation:
-  width: 10000.0 nm
-  height: 750 nm
-Creating surfaces:
-  Creating Top-Surface: Inlet (y=height) at point (5000.0, 750, 0.0)
-    SUCCESS: Top-Surface created with 1 edges
-  Creating Bottom-Surface: Outlet (y=0) at point (5000.0, 0.0, 0.0)
-    SUCCESS: Bottom-Surface created with 1 edges
-  Creating Left-Surface: Periodic left (x=0) at point (0.0, 375.0, 0.0)
-    SUCCESS: Left-Surface created with 1 edges
-  Creating Right-Surface: Periodic right (x=width) at point (10000.0, 375.0, 0.0)
-    SUCCESS: Right-Surface created with 1 edges
-Surface creation summary:
-  Successful surfaces: 4/4
-    Top-Surface: SUCCESS (1 edges)
-    Bottom-Surface: SUCCESS (1 edges)
-    Left-Surface: SUCCESS (1 edges)
-    Right-Surface: SUCCESS (1 edges)
-  Surface creation completed (0.0s)
-Phase 4: Boundary condition application
-=== APPLYING BOUNDARY CONDITIONS (NANOMETER UNITS) ===
-Boundary condition parameters:
-  domain height: 750.0 nm
-  domain width: 10000.0 nm
-  inlet concentration: 1.0
-  outlet concentration: 0.0
-  Found 201 top nodes (y=750.0)
-  Found 201 bottom nodes (y=0)
-  Found 16 left nodes (x=0)
-  Found 16 right nodes (x=10000.0)
-  ERROR applying inlet BC: Feature creation failed.
-
-  ERROR applying outlet BC: Feature creation failed.
-
-Boundary condition summary:
-  Vertical flow: TOP (inlet, C=1) -> BOTTOM (outlet, C=0)
-  Horizontal: No-flux (insulated) boundaries
-    Inlet: FAILED (0 nodes)
-    Outlet: FAILED (0 nodes)
-  Boundary condition application completed (0.1s)
-Generated job name: Job_SS_c100_d10000_o0p25
-Phase 5: Job submission and execution
-=== SUBMITTING JOB ===
-Job name: Job_SS_c100_d10000_o0p25
-ERROR in submit_job: *** Error: File open failed (utl_File: CreateFile in OpenWrite)
-error: Der Prozess kann nicht auf die Datei zugreifen, da sie von einem anderen Prozess verwendet wird.
-
-file: C:\Users\franke\source\repos\JCFranke2023\TortousPath\Job_SS_c100_d10000_o0p25.cae
-ERROR in run_single_simulation after 0.5s: *** Error: File open failed (utl_File: CreateFile in OpenWrite)
-error: Der Prozess kann nicht auf die Datei zugreifen, da sie von einem anderen Prozess verwendet wird.
-
-file: C:\Users\franke\source\repos\JCFranke2023\TortousPath\Job_SS_c100_d10000_o0p25.cae
-Full traceback:
-Traceback (most recent call last):
-  File "simulation_runner.py", line 872, in run_single_simulation
-    result_job_name = self.submit_job(job_name)
-  File "simulation_runner.py", line 691, in submit_job
-    mdb.saveAs(pathName='{}.cae'.format(job_name))
-<unknown>.AbaqusException: *** Error: File open failed (utl_File: CreateFile in OpenWrite)
-error: Der Prozess kann nicht auf die Datei zugreifen, da sie von einem anderen Prozess verwendet wird.
-
-file: C:\Users\franke\source\repos\JCFranke2023\TortousPath\Job_SS_c100_d10000_o0p25.cae
-
-ERROR in main execution after 0.5s: *** Error: File open failed (utl_File: CreateFile in OpenWrite)
-error: Der Prozess kann nicht auf die Datei zugreifen, da sie von einem anderen Prozess verwendet wird.
-
-file: C:\Users\franke\source\repos\JCFranke2023\TortousPath\Job_SS_c100_d10000_o0p25.cae
-Full traceback:
-Traceback (most recent call last):
-  File "simulation_runner.py", line 1225, in <module>
-    job_name = runner.run_single_simulation(default_params)
-  File "simulation_runner.py", line 872, in run_single_simulation
-    result_job_name = self.submit_job(job_name)
-  File "simulation_runner.py", line 691, in submit_job
-    mdb.saveAs(pathName='{}.cae'.format(job_name))
-<unknown>.AbaqusException: *** Error: File open failed (utl_File: CreateFile in OpenWrite)
-error: Der Prozess kann nicht auf die Datei zugreifen, da sie von einem anderen Prozess verwendet wird.
-
-file: C:\Users\franke\source\repos\JCFranke2023\TortousPath\Job_SS_c100_d10000_o0p25.cae
-
+=== MAIN EXECUTION ===
+Initializing SimulationRunner: PermeationModel
+=== RUNNING SIMULATION ===
+Parameters: w=100.0nm, s=10000.0nm, o=0.25
+=== SETTING UP MODEL ===
+Parameters (nm): width=100.0, spacing=10000.0, offset=0.25
+Geometry created: 9 faces
+Model setup completed
+Creating analysis step...
+  Mass diffusion step created
+  Output requests configured
+Applying boundary conditions...
+  Found 201 top nodes, 201 bottom nodes
+  Inlet BC applied (C=1.0)
+  Outlet BC applied (C=0.0)
+  Flow direction: TOP -> BOTTOM (vertical)
+Submitting job: Job_c100_s10000_o25
+  Model saved: Job_c100_s10000_o25.cae
+  Job submitted
+  Job completed: ODB size = 10.7 MB
+  Analysis completed successfully
+  Organized 6 files to abaqus_files\jobs\Job_c100_s10000_o25
+=== SIMULATION COMPLETED ===
+SUCCESS: Job_c100_s10000_o25
+=== COMPLETED ===
