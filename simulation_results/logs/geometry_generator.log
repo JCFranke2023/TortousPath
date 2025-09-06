@@ -1,25 +1,25 @@
 === GEOMETRY GENERATOR STARTED ===
 ABAQUS environment detected
 GeometryGenerator initialized
-Layer thicknesses initialized:
-  h0_substrate: 5.0e+02
-  h1_adhesion: 5.0e+01
-  h2_barrier1: 5.0e+01
-  h3_interlayer: 5.0e+01
-  h4_barrier2: 5.0e+01
-  h5_topcoat: 5.0e+01
-  total_height: 7.5e+02
+Layer thicknesses initialized (nm):
+  h0_substrate: 500.0
+  h1_adhesion: 50.0
+  h2_barrier1: 50.0
+  h3_interlayer: 50.0
+  h4_barrier2: 50.0
+  h5_topcoat: 50.0
+  total_height: 750.0
 Setting parameters (nanometer units):
   crack_width: 100.0 nm
   crack_spacing: 10000.0 nm (10.0 um)
   crack_offset: 0.25
   single_sided: True
-  total_height updated: 750.0 -> 750.0 nm
+  total_height: 750.0 nm
 Creating materials...
-  Created material PET: D=1.0e+06, S=1.0e-33
-  Created material interlayer: D=5.0e+07, S=2.0e-33
-  Created material barrier: D=1.0e-02, S=1.0e-36
-  Created material air_crack: D=2.4e+13, S=4.0e-29
+  Created material PET: D=1.0e+06 nm²/s, S=1.0e-33 mol/nm³/Pa
+  Created material interlayer: D=5.0e+07 nm²/s, S=2.0e-33 mol/nm³/Pa
+  Created material barrier: D=1.0e-02 nm²/s, S=1.0e-36 mol/nm³/Pa
+  Created material air_crack: D=2.4e+13 nm²/s, S=4.0e-29 mol/nm³/Pa
 Creating sections...
   Created section: PET_section
   Created section: interlayer_section
@@ -28,193 +28,57 @@ Creating sections...
 Creating unit cell geometry (nanometer units)...
   Creating part: UnitCell (width=10000.0 nm, height=750.0 nm)
   Base geometry created successfully
-  Creating layer partitions (nanometer coordinates)...
-    Layer 0 interface at y=500.0 nm (thickness=500.0 nm)
-    Layer 1 interface at y=550.0 nm (thickness=50.0 nm)
-    Layer 2 interface at y=600.0 nm (thickness=50.0 nm)
-    Layer 3 interface at y=650.0 nm (thickness=50.0 nm)
-    Layer 4 interface at y=700.0 nm (thickness=50.0 nm)
+  Creating layer partitions...
+    Layer 0 interface at y=500.0 nm
+    Layer 1 interface at y=550.0 nm
+    Layer 2 interface at y=600.0 nm
+    Layer 3 interface at y=650.0 nm
+    Layer 4 interface at y=700.0 nm
     Created layer partition at y=500.0 nm
     Created layer partition at y=550.0 nm
     Created layer partition at y=600.0 nm
     Created layer partition at y=650.0 nm
     Created layer partition at y=700.0 nm
-  Creating crack partitions (nanometer coordinates)...
-    Barrier1 cracks: y=550.0 to 600.0 nm, offset=0.0 nm
-    Creating vertical crack partitions for Barrier1 (nm coordinates)
-      Crack boundaries: x1=0.0, x2=100.0 nm (width=100.0 nm)
-      Normal crack within domain
-      Skipped partition at boundary x=0.0 nm
-      Created Barrier1 crack partition at x=100.0 nm
-    Barrier2 cracks: y=650.0 to 700.0 nm, offset=2500.0 nm
-    Creating vertical crack partitions for Barrier2 (nm coordinates)
-      Crack boundaries: x1=2500.0, x2=2600.0 nm (width=100.0 nm)
-      Normal crack within domain
-      Created Barrier2 crack partition at x=2500.0 nm
-      Created Barrier2 crack partition at x=2600.0 nm
+  Creating crack partitions...
+    Barrier1: y=550.0 to 600.0 nm, offset=0.0 nm
+    Creating vertical partitions for Barrier1
+      Crack: x1=0.0, x2=100.0 nm (width=100.0 nm)
+      Skipped boundary partition at x=0.0 nm
+      Created partition at x=100.0 nm
+    Barrier2: y=650.0 to 700.0 nm, offset=2500.0 nm
+    Creating vertical partitions for Barrier2
+      Crack: x1=2500.0, x2=2600.0 nm (width=100.0 nm)
+      Created partition at x=2500.0 nm
+      Created partition at x=2600.0 nm
   Unit cell geometry completed with 9 faces
-=== STARTING MATERIAL ASSIGNMENT (FIXED CENTROID) ===
-Total faces in part: 9
-Skipping face centroid examination (causes ABAQUS API errors)
-Checking available sections in model:
-  - PET_section
-  - air_crack_section
-  - barrier_section
-  - interlayer_section
-Calculating layer boundaries (nanometer coordinates):
-  substrate: y=0.0 to 500.0 nm
-  adhesion: y=500.0 to 550.0 nm
-  barrier1: y=550.0 to 600.0 nm
-  interlayer: y=600.0 to 650.0 nm
-  barrier2: y=650.0 to 700.0 nm
-  topcoat: y=700.0 to 750.0 nm
-Trying different assignment strategies...
-Strategy 1: Centroid-based assignment
-  Assigning materials by centroid analysis...
-    Processing layer substrate: y=0.0e+00 to 5.0e+02
-    Searching for faces in layer: y=0.0 to 500.0 nm
-    Total faces in part: 9
-      Face 0: centroid=(6300.0, 675.0, 0.0) nm
-        -> Face 0 outside layer bounds
-      Face 1: centroid=(2550.0, 675.0, 0.0) nm
-        -> Face 1 outside layer bounds
-      Face 2: centroid=(5050.0, 575.0, 0.0) nm
-        -> Face 2 outside layer bounds
-      Face 3: centroid=(1250.0, 675.0, 0.0) nm
-        -> Face 3 outside layer bounds
-      Face 4: centroid=(5000.0, 625.0, 0.0) nm
-        -> Face 4 outside layer bounds
-      Face 5: centroid=(50.0, 575.0, 0.0) nm
-        -> Face 5 outside layer bounds
-      Face 6: centroid=(5000.0, 525.0, 0.0) nm
-        -> Face 6 outside layer bounds
-      Face 7: centroid=(5000.0, 250.0, 0.0) nm
-        -> Face 7 included in layer
-      Face 8: centroid=(5000.0, 725.0, 0.0) nm
-        -> Face 8 outside layer bounds
-    Found 1 faces in layer
-    Assigned PET to substrate (1 faces)
-    Processing layer adhesion: y=5.0e+02 to 5.5e+02
-    Searching for faces in layer: y=500.0 to 550.0 nm
-    Total faces in part: 9
-      Face 0: centroid=(6300.0, 675.0, 0.0) nm
-        -> Face 0 outside layer bounds
-      Face 1: centroid=(2550.0, 675.0, 0.0) nm
-        -> Face 1 outside layer bounds
-      Face 2: centroid=(5050.0, 575.0, 0.0) nm
-        -> Face 2 outside layer bounds
-      Face 3: centroid=(1250.0, 675.0, 0.0) nm
-        -> Face 3 outside layer bounds
-      Face 4: centroid=(5000.0, 625.0, 0.0) nm
-        -> Face 4 outside layer bounds
-      Face 5: centroid=(50.0, 575.0, 0.0) nm
-        -> Face 5 outside layer bounds
-      Face 6: centroid=(5000.0, 525.0, 0.0) nm
-        -> Face 6 included in layer
-      Face 7: centroid=(5000.0, 250.0, 0.0) nm
-        -> Face 7 outside layer bounds
-      Face 8: centroid=(5000.0, 725.0, 0.0) nm
-        -> Face 8 outside layer bounds
-    Found 1 faces in layer
-    Assigned interlayer to adhesion (1 faces)
-    Processing layer barrier1: y=5.5e+02 to 6.0e+02
-    Searching for faces in layer: y=550.0 to 600.0 nm
-    Total faces in part: 9
-      Face 0: centroid=(6300.0, 675.0, 0.0) nm
-        -> Face 0 outside layer bounds
-      Face 1: centroid=(2550.0, 675.0, 0.0) nm
-        -> Face 1 outside layer bounds
-      Face 2: centroid=(5050.0, 575.0, 0.0) nm
-        -> Face 2 included in layer
-      Face 3: centroid=(1250.0, 675.0, 0.0) nm
-        -> Face 3 outside layer bounds
-      Face 4: centroid=(5000.0, 625.0, 0.0) nm
-        -> Face 4 outside layer bounds
-      Face 5: centroid=(50.0, 575.0, 0.0) nm
-        -> Face 5 included in layer
-      Face 6: centroid=(5000.0, 525.0, 0.0) nm
-        -> Face 6 outside layer bounds
-      Face 7: centroid=(5000.0, 250.0, 0.0) nm
-        -> Face 7 outside layer bounds
-      Face 8: centroid=(5000.0, 725.0, 0.0) nm
-        -> Face 8 outside layer bounds
-    Found 2 faces in layer
-    Assigned barrier to barrier1 (2 faces)
-    Processing layer interlayer: y=6.0e+02 to 6.5e+02
-    Searching for faces in layer: y=600.0 to 650.0 nm
-    Total faces in part: 9
-      Face 0: centroid=(6300.0, 675.0, 0.0) nm
-        -> Face 0 outside layer bounds
-      Face 1: centroid=(2550.0, 675.0, 0.0) nm
-        -> Face 1 outside layer bounds
-      Face 2: centroid=(5050.0, 575.0, 0.0) nm
-        -> Face 2 outside layer bounds
-      Face 3: centroid=(1250.0, 675.0, 0.0) nm
-        -> Face 3 outside layer bounds
-      Face 4: centroid=(5000.0, 625.0, 0.0) nm
-        -> Face 4 included in layer
-      Face 5: centroid=(50.0, 575.0, 0.0) nm
-        -> Face 5 outside layer bounds
-      Face 6: centroid=(5000.0, 525.0, 0.0) nm
-        -> Face 6 outside layer bounds
-      Face 7: centroid=(5000.0, 250.0, 0.0) nm
-        -> Face 7 outside layer bounds
-      Face 8: centroid=(5000.0, 725.0, 0.0) nm
-        -> Face 8 outside layer bounds
-    Found 1 faces in layer
-    Assigned interlayer to interlayer (1 faces)
-    Processing layer barrier2: y=6.5e+02 to 7.0e+02
-    Searching for faces in layer: y=650.0 to 700.0 nm
-    Total faces in part: 9
-      Face 0: centroid=(6300.0, 675.0, 0.0) nm
-        -> Face 0 included in layer
-      Face 1: centroid=(2550.0, 675.0, 0.0) nm
-        -> Face 1 included in layer
-      Face 2: centroid=(5050.0, 575.0, 0.0) nm
-        -> Face 2 outside layer bounds
-      Face 3: centroid=(1250.0, 675.0, 0.0) nm
-        -> Face 3 included in layer
-      Face 4: centroid=(5000.0, 625.0, 0.0) nm
-        -> Face 4 outside layer bounds
-      Face 5: centroid=(50.0, 575.0, 0.0) nm
-        -> Face 5 outside layer bounds
-      Face 6: centroid=(5000.0, 525.0, 0.0) nm
-        -> Face 6 outside layer bounds
-      Face 7: centroid=(5000.0, 250.0, 0.0) nm
-        -> Face 7 outside layer bounds
-      Face 8: centroid=(5000.0, 725.0, 0.0) nm
-        -> Face 8 outside layer bounds
-    Found 3 faces in layer
-    Assigned barrier to barrier2 (3 faces)
-    Processing layer topcoat: y=7.0e+02 to 7.5e+02
-    Searching for faces in layer: y=700.0 to 750.0 nm
-    Total faces in part: 9
-      Face 0: centroid=(6300.0, 675.0, 0.0) nm
-        -> Face 0 outside layer bounds
-      Face 1: centroid=(2550.0, 675.0, 0.0) nm
-        -> Face 1 outside layer bounds
-      Face 2: centroid=(5050.0, 575.0, 0.0) nm
-        -> Face 2 outside layer bounds
-      Face 3: centroid=(1250.0, 675.0, 0.0) nm
-        -> Face 3 outside layer bounds
-      Face 4: centroid=(5000.0, 625.0, 0.0) nm
-        -> Face 4 outside layer bounds
-      Face 5: centroid=(50.0, 575.0, 0.0) nm
-        -> Face 5 outside layer bounds
-      Face 6: centroid=(5000.0, 525.0, 0.0) nm
-        -> Face 6 outside layer bounds
-      Face 7: centroid=(5000.0, 250.0, 0.0) nm
-        -> Face 7 outside layer bounds
-      Face 8: centroid=(5000.0, 725.0, 0.0) nm
-        -> Face 8 included in layer
-    Found 1 faces in layer
-    Assigned interlayer to topcoat (1 faces)
-  Centroid assignment: 9 faces assigned
-Strategy 1 succeeded
+=== ASSIGNING MATERIALS WITH CRACK DETECTION ===
+Layer boundaries (nm):
+  substrate: y=0.0 to 500.0
+  adhesion: y=500.0 to 550.0
+  barrier1: y=550.0 to 600.0
+  interlayer: y=600.0 to 650.0
+  barrier2: y=650.0 to 700.0
+  topcoat: y=700.0 to 750.0
+Calculating crack positions (nm):
+  Barrier1 crack: x=0.0 to 100.0 nm
+  Barrier2 crack: x=2500.0 to 2600.0 nm
+Assigning materials to 9 faces...
+  Face 0 at (6300.0,675.0): barrier2 -> barrier
+  Face 1 at (2550.0,675.0): barrier2_crack -> air_crack
+  Face 2 at (5050.0,575.0): barrier1 -> barrier
+  Face 3 at (1250.0,675.0): barrier2 -> barrier
+  Face 5 at (50.0,575.0): barrier1_crack -> air_crack
+Material assignment summary:
+  adhesion: 1 faces
+  barrier1: 1 faces
+  barrier1_crack: 1 faces
+  barrier2: 2 faces
+  barrier2_crack: 1 faces
+  interlayer: 1 faces
+  substrate: 1 faces
+  topcoat: 1 faces
 === MATERIAL ASSIGNMENT COMPLETED ===
-Creating mesh (nanometer units)...
-  Element type set to DC2D4
-  Seeding part with element size: 50.0 nm
-  Geometry dimensions: width=10000.0 nm, height=750.0 nm
-  Part seeded successfully
-  Mesh generated successfully
+Creating mesh...
+  Element type: DC2D4 (mass diffusion)
+  Element size: 50.0 nm
+  Mesh created: 3000 elements, 3216 nodes

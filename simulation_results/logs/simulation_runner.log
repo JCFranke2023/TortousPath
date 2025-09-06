@@ -70,31 +70,36 @@ Step 4: Creating unit cell geometry...
       Edge 8: (100.0,550.0) to (10000.0,550.0) nm
       Edge 9: (10000.0,600.0) to (10000.0,550.0) nm
       ... (18 more edges)
-  Geometry creation completed (0.12s)
+  Geometry creation completed (0.10s)
 Step 5: Creating assembly instance...
   Assembly instance created: UnitCell-1
   Assembly creation completed (0.00s)
 Step 6: Assigning materials to regions...
   Verifying section assignments:
     Total faces: 9
-    Section assignments: 6
-      Assignment 0: PET_section -> 4 faces
-      Assignment 1: interlayer_section -> 4 faces
+    Section assignments: 9
+      Assignment 0: barrier_section -> 4 faces
+      Assignment 1: air_crack_section -> 4 faces
       Assignment 2: barrier_section -> 4 faces
-      Assignment 3: interlayer_section -> 4 faces
-      Assignment 4: barrier_section -> 4 faces
-      Assignment 5: interlayer_section -> 4 faces
+      Assignment 3: barrier_section -> 4 faces
+      Assignment 4: interlayer_section -> 4 faces
+      Assignment 5: air_crack_section -> 4 faces
+      Assignment 6: interlayer_section -> 4 faces
+      Assignment 7: PET_section -> 4 faces
+      Assignment 8: interlayer_section -> 4 faces
     Section assignment summary:
       Total faces: 9
-      Assigned faces: 24
-      Unassigned faces: -15
-        PET_section: 4 faces (44.4%)
+      Assigned faces: 36
+      Unassigned faces: -27
+        barrier_section: 12 faces (133.3%)
+        air_crack_section: 8 faces (88.9%)
         interlayer_section: 12 faces (133.3%)
-        barrier_section: 8 faces (88.9%)
+        PET_section: 4 faces (44.4%)
     SUCCESS: All faces have section assignments
-  Material assignment completed (0.13s)
+  Material assignment completed (0.04s)
 Step 7: Creating mesh...
   Mesh created successfully
+  Assembly regenerated with mesh
 Step 8: Final model verification...
   Final model verification:
     Model components:
@@ -108,8 +113,8 @@ Step 8: Final model verification...
       Geometry created: PASS
       Sections assigned: PASS
     MODEL IS READY FOR ANALYSIS
-=== MODEL SETUP COMPLETED (0.3s total) ===
-  Model setup completed (0.3s)
+=== MODEL SETUP COMPLETED (0.2s total) ===
+  Model setup completed (0.2s)
 Phase 2: Analysis step creation
 === CREATING ANALYSIS STEP ===
 Mass diffusion step created successfully (0.01s):
@@ -121,6 +126,11 @@ Mass diffusion step created successfully (0.01s):
   dcmax: 1000.0
   Step verification: SUCCESS
   Analysis step creation completed (0.0s)
+Phase 2b: Output requests
+Creating output requests...
+  Field output request created: NNC, MFL, IVOL
+  Output requests configured successfully
+  Output requests creation completed (0.0s)
 Phase 3: Surface creation
 === CREATING SURFACES ===
 Geometry parameters for surface creation:
@@ -149,57 +159,57 @@ Boundary condition parameters:
   domain width: 10000.0 nm
   inlet concentration: 1.0
   outlet concentration: 0.0
-Finding boundary nodes by coordinates:
-  Total nodes in instance: 0
-  Found 0 top nodes at y=750.0 nm
-  Found 0 bottom nodes at y=0.0 nm
-  ERROR: No top nodes found for inlet BC
-  ERROR: No bottom nodes found for outlet BC
+  Found 201 top nodes (y=750.0)
+  Found 201 bottom nodes (y=0)
+  Found 16 left nodes (x=0)
+  Found 16 right nodes (x=10000.0)
+  ERROR applying inlet BC: Feature creation failed.
+
+  ERROR applying outlet BC: Feature creation failed.
+
 Boundary condition summary:
-  Successful BCs: 0/2
+  Vertical flow: TOP (inlet, C=1) -> BOTTOM (outlet, C=0)
+  Horizontal: No-flux (insulated) boundaries
     Inlet: FAILED (0 nodes)
     Outlet: FAILED (0 nodes)
-  WARNING: Boundary conditions failed - will cause zero flux
-  Boundary condition application completed (0.0s)
+  Boundary condition application completed (0.1s)
 Generated job name: Job_SS_c100_d10000_o0p25
 Phase 5: Job submission and execution
 === SUBMITTING JOB ===
 Job name: Job_SS_c100_d10000_o0p25
-Creating ABAQUS job...
-  Job created successfully (0.03s)
-  Job description: PECVD barrier permeation analysis - Job_SS_c100_d10000_o0p25
-  Memory allocation: 90 PERCENTAGE
-Submitting job for execution...
-  Job submitted (22.95s)
-  Job status: None
-Waiting for job completion...
-  Job execution completed in 0.0s (0.0 minutes)
-  Final job status: None
-  WARNING: Job finished with unexpected status: None
-Organizing output files...
-  File organization completed (0.05s)
-  Organized 8 files
-    -> Job_SS_c100_d10000_o0p25.odb
-    -> Job_SS_c100_d10000_o0p25.sta
-    -> Job_SS_c100_d10000_o0p25.msg
-    -> Job_SS_c100_d10000_o0p25.dat
-    -> Job_SS_c100_d10000_o0p25.prt
-    -> Job_SS_c100_d10000_o0p25.com
-    -> Job_SS_c100_d10000_o0p25.log
-    -> Job_SS_c100_d10000_o0p25.inp
-Starting post-processing...
-=== EXTRACTING AND ANALYZING RESULTS ===
-Job: Job_SS_c100_d10000_o0p25
-Looking for ODB at: ./abaqus_files/results/Job_SS_c100_d10000_o0p25.odb
-ERROR: ODB file not found: ./abaqus_files/results/Job_SS_c100_d10000_o0p25.odb
-  Post-processing completed (0.00s)
-  Data extraction and analysis: FAILED
-=== JOB SUBMISSION COMPLETED ===
-Total job time: 23.0s (0.4 minutes)
-  Job execution completed (23.0s)
-=== SINGLE SIMULATION COMPLETED ===
-Total simulation time: 23.4s (0.4 minutes)
-Completed job: Job_SS_c100_d10000_o0p25
-Default simulation completed successfully: Job_SS_c100_d10000_o0p25
-Total main execution time: 23.4s (0.4 minutes)
-=== MAIN EXECUTION COMPLETED ===
+ERROR in submit_job: *** Error: File open failed (utl_File: CreateFile in OpenWrite)
+error: Der Prozess kann nicht auf die Datei zugreifen, da sie von einem anderen Prozess verwendet wird.
+
+file: C:\Users\franke\source\repos\JCFranke2023\TortousPath\Job_SS_c100_d10000_o0p25.cae
+ERROR in run_single_simulation after 0.5s: *** Error: File open failed (utl_File: CreateFile in OpenWrite)
+error: Der Prozess kann nicht auf die Datei zugreifen, da sie von einem anderen Prozess verwendet wird.
+
+file: C:\Users\franke\source\repos\JCFranke2023\TortousPath\Job_SS_c100_d10000_o0p25.cae
+Full traceback:
+Traceback (most recent call last):
+  File "simulation_runner.py", line 872, in run_single_simulation
+    result_job_name = self.submit_job(job_name)
+  File "simulation_runner.py", line 691, in submit_job
+    mdb.saveAs(pathName='{}.cae'.format(job_name))
+<unknown>.AbaqusException: *** Error: File open failed (utl_File: CreateFile in OpenWrite)
+error: Der Prozess kann nicht auf die Datei zugreifen, da sie von einem anderen Prozess verwendet wird.
+
+file: C:\Users\franke\source\repos\JCFranke2023\TortousPath\Job_SS_c100_d10000_o0p25.cae
+
+ERROR in main execution after 0.5s: *** Error: File open failed (utl_File: CreateFile in OpenWrite)
+error: Der Prozess kann nicht auf die Datei zugreifen, da sie von einem anderen Prozess verwendet wird.
+
+file: C:\Users\franke\source\repos\JCFranke2023\TortousPath\Job_SS_c100_d10000_o0p25.cae
+Full traceback:
+Traceback (most recent call last):
+  File "simulation_runner.py", line 1225, in <module>
+    job_name = runner.run_single_simulation(default_params)
+  File "simulation_runner.py", line 872, in run_single_simulation
+    result_job_name = self.submit_job(job_name)
+  File "simulation_runner.py", line 691, in submit_job
+    mdb.saveAs(pathName='{}.cae'.format(job_name))
+<unknown>.AbaqusException: *** Error: File open failed (utl_File: CreateFile in OpenWrite)
+error: Der Prozess kann nicht auf die Datei zugreifen, da sie von einem anderen Prozess verwendet wird.
+
+file: C:\Users\franke\source\repos\JCFranke2023\TortousPath\Job_SS_c100_d10000_o0p25.cae
+

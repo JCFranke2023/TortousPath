@@ -149,12 +149,12 @@ class SimulationRunner:
             log_message("Step 3: Creating sections...", self.log_file)
             step_start = time.time()
             
-            self.geometry.assign_sections()
+            self.geometry.create_sections()
             self._verify_sections_created()
             
             step_time = time.time() - step_start
             log_message("  Sections created successfully ({:.2f}s)".format(step_time), self.log_file)
-            
+
             # Step 4: Create geometry with partitions
             log_message("Step 4: Creating unit cell geometry...", self.log_file)
             step_start = time.time()
@@ -178,7 +178,7 @@ class SimulationRunner:
             assembly = self.model.rootAssembly
             instance = assembly.Instance(name='UnitCell-1', part=part, dependent=ON)
             log_message("  Assembly instance created: UnitCell-1", self.log_file)
-            
+
             step_time = time.time() - step_start
             log_message("  Assembly creation completed ({:.2f}s)".format(step_time), self.log_file)
             
@@ -199,6 +199,13 @@ class SimulationRunner:
             self.geometry.create_mesh(part)
             log_message("  Mesh created successfully", self.log_file)
             
+            # Regenerate assembly to get meshed instance
+            assembly.regenerate()
+            log_message("  Assembly regenerated with mesh", self.log_file)
+
+            # Update instance reference to the meshed version
+            instance = assembly.instances['UnitCell-1']
+
             # Step 8: Final model verification
             log_message("Step 8: Final model verification...", self.log_file)
             self._verify_complete_model(part, instance)
@@ -254,7 +261,7 @@ class SimulationRunner:
             log_message("    WARNING: Missing sections: {}".format(list(missing_sections)), self.log_file)
         else:
             log_message("    All sections created successfully", self.log_file)
-    
+
     def _log_geometry_details(self, part):
         """Log detailed geometry information - FIXED VERSION"""
         log_message("  Geometry details:", self.log_file)
@@ -451,6 +458,43 @@ class SimulationRunner:
             log_message(traceback.format_exc(), self.log_file)
             raise
 
+    def create_output_requests(self):
+        """Create output requests for mass diffusion analysis"""
+        log_message("Creating output requests...", self.log_file)
+        
+        if not ABAQUS_ENV:
+            log_message("Would create output requests in ABAQUS environment", self.log_file)
+            return
+        
+        try:
+            # Delete default field output request
+            del self.model.fieldOutputRequests['F-Output-1']
+            
+            # Create new field output request for mass diffusion
+            self.model.FieldOutputRequest(
+                name='F-Output-1',
+                createStepName='Permeation',
+                variables=('NNC', 'MFL', 'IVOL', 'COORD')  # Concentration, Mass flux, Integration volume
+            )
+            log_message("  Field output request created: NNC, MFL, IVOL", self.log_file)
+            
+            # Delete default history output request  
+            del self.model.historyOutputRequests['H-Output-1']
+            
+            if 'TopNodes' in self.model.rootAssembly.sets:
+                self.model.HistoryOutputRequest(
+                    name='H-Output-TopNodes',
+                    createStepName='Permeation',
+                    region=self.model.rootAssembly.sets['TopNodes'],
+                    variables=('NNC',)
+                )
+                log_message("  History output for TopNodes created", self.log_file)
+
+            log_message("  Output requests configured successfully", self.log_file)
+            
+        except Exception as e:
+            log_message("  ERROR creating output requests: {}".format(str(e)), self.log_file)
+
     def create_surfaces(self, instance):
         """Create named surfaces for boundary conditions"""
         log_message("=== CREATING SURFACES ===", self.log_file)
@@ -526,7 +570,7 @@ class SimulationRunner:
             raise
 
     def apply_boundary_conditions(self, instance):
-        """Apply concentration boundary conditions - NANOMETER UNITS"""
+        """Apply concentration boundary conditions - FIXED ORIENTATION"""
         log_message("=== APPLYING BOUNDARY CONDITIONS (NANOMETER UNITS) ===", self.log_file)
         
         if not ABAQUS_ENV:
@@ -547,30 +591,39 @@ class SimulationRunner:
             assembly = self.model.rootAssembly
             bc_results = {}
             
-            log_message("Finding boundary nodes by coordinates:", self.log_file)
-            log_message("  Total nodes in instance: {}".format(len(instance.nodes)), self.log_file)
-            
-            # Find boundary nodes
+            # MORE PRECISE: Find nodes by exact coordinate matching
             top_nodes = []
             bottom_nodes = []
-            tolerance = 1e-6  # nm tolerance
+            left_nodes = []
+            right_nodes = []
+            tolerance = 1e-6  # Very small tolerance in nm
             
             for node in instance.nodes:
-                coords = node.coordinates
-                y_coord = coords[1]  # y-coordinate in nm
+                x_coord = node.coordinates[0]
+                y_coord = node.coordinates[1]
                 
-                # Check if node is at top boundary (y = height)
+                # TOP boundary (y = height) - INLET
                 if abs(y_coord - height) < tolerance:
                     top_nodes.append(node)
                 
-                # Check if node is at bottom boundary (y = 0)  
+                # BOTTOM boundary (y = 0) - OUTLET  
                 elif abs(y_coord - 0.0) < tolerance:
                     bottom_nodes.append(node)
+                
+                # LEFT boundary (x = 0) - for periodic BC
+                if abs(x_coord - 0.0) < tolerance:
+                    left_nodes.append(node)
+                
+                # RIGHT boundary (x = width) - for periodic BC
+                elif abs(x_coord - width) < tolerance:
+                    right_nodes.append(node)
             
-            log_message("  Found {} top nodes at y={:.1f} nm".format(len(top_nodes), height), self.log_file)
-            log_message("  Found {} bottom nodes at y=0.0 nm".format(len(bottom_nodes)), self.log_file)
+            log_message("  Found {} top nodes (y={:.1f})".format(len(top_nodes), height), self.log_file)
+            log_message("  Found {} bottom nodes (y=0)".format(len(bottom_nodes)), self.log_file)
+            log_message("  Found {} left nodes (x=0)".format(len(left_nodes)), self.log_file)
+            log_message("  Found {} right nodes (x={:.1f})".format(len(right_nodes), width), self.log_file)
             
-            # Apply inlet BC to top nodes
+            # Apply TOP boundary condition (INLET)
             if top_nodes:
                 try:
                     assembly.Set(nodes=tuple(top_nodes), name='TopNodes')
@@ -583,16 +636,13 @@ class SimulationRunner:
                         magnitude=self.inlet_concentration
                     )
                     bc_results['Inlet'] = len(top_nodes)
-                    log_message("  Inlet BC applied successfully to {} nodes".format(len(top_nodes)), self.log_file)
+                    log_message("  Inlet BC applied to TOP: {} nodes".format(len(top_nodes)), self.log_file)
                     
                 except Exception as e:
                     bc_results['Inlet'] = 0
                     log_message("  ERROR applying inlet BC: {}".format(str(e)), self.log_file)
-            else:
-                bc_results['Inlet'] = 0
-                log_message("  ERROR: No top nodes found for inlet BC", self.log_file)
             
-            # Apply outlet BC to bottom nodes
+            # Apply BOTTOM boundary condition (OUTLET)
             if bottom_nodes:
                 try:
                     assembly.Set(nodes=tuple(bottom_nodes), name='BottomNodes')
@@ -605,38 +655,26 @@ class SimulationRunner:
                         magnitude=self.outlet_concentration
                     )
                     bc_results['Outlet'] = len(bottom_nodes)
-                    log_message("  Outlet BC applied successfully to {} nodes".format(len(bottom_nodes)), self.log_file)
+                    log_message("  Outlet BC applied to BOTTOM: {} nodes".format(len(bottom_nodes)), self.log_file)
                     
                 except Exception as e:
                     bc_results['Outlet'] = 0
                     log_message("  ERROR applying outlet BC: {}".format(str(e)), self.log_file)
-            else:
-                bc_results['Outlet'] = 0
-                log_message("  ERROR: No bottom nodes found for outlet BC", self.log_file)
+            
+            # Note: For true periodic BCs on left/right, you'd need to use equation constraints
+            # or model only half the domain with symmetry. For now, these are insulated (no-flux).
             
             # Summary
             log_message("Boundary condition summary:", self.log_file)
-            successful_bcs = 0
-            for count in bc_results.values():
-                if count > 0:
-                    successful_bcs += 1
-            
-            log_message("  Successful BCs: {}/2".format(successful_bcs), self.log_file)
+            log_message("  Vertical flow: TOP (inlet, C=1) -> BOTTOM (outlet, C=0)", self.log_file)
+            log_message("  Horizontal: No-flux (insulated) boundaries", self.log_file)
             
             for bc_name, node_count in bc_results.items():
                 status = "SUCCESS" if node_count > 0 else "FAILED"
                 log_message("    {}: {} ({} nodes)".format(bc_name, status, node_count), self.log_file)
-            
-            if successful_bcs == 2:
-                log_message("  All boundary conditions applied successfully!", self.log_file)
-            else:
-                log_message("  WARNING: Boundary conditions failed - will cause zero flux", self.log_file)
                 
         except Exception as e:
             log_message("ERROR in apply_boundary_conditions: {}".format(str(e)), self.log_file)
-            import traceback
-            log_message("Full traceback:", self.log_file)
-            log_message(traceback.format_exc(), self.log_file)
             raise
 
     def submit_job(self, job_name='Permeation_Job'):
@@ -649,7 +687,9 @@ class SimulationRunner:
             return job_name
         
         try:
-            job_start_time = time.time()
+            # Save the model database before job submission
+            mdb.saveAs(pathName='{}.cae'.format(job_name))
+            log_message("  Model saved as {}.cae".format(job_name), self.log_file)
             
             # Create job
             log_message("Creating ABAQUS job...", self.log_file)
@@ -670,110 +710,85 @@ class SimulationRunner:
                 echoPrint=OFF,
                 modelPrint=OFF,
                 contactPrint=OFF,
-                historyPrint=OFF,
-                userSubroutine='',
-                scratch='',
-                resultsFormat=ODB
+                historyPrint=OFF
             )
             
-            creation_time = time.time() - job_start_time
-            log_message("  Job created successfully ({:.2f}s)".format(creation_time), self.log_file)
-            log_message("  Job description: {}".format(analysis_job.description), self.log_file)
-            log_message("  Memory allocation: {} {}".format(
-                analysis_job.memory, 'PERCENTAGE' if analysis_job.memoryUnits == PERCENTAGE else 'MB'), self.log_file)
+            log_message("  Job created successfully", self.log_file)
             
             # Submit job
             log_message("Submitting job for execution...", self.log_file)
-            submit_start = time.time()
             analysis_job.submit()
-            submit_time = time.time() - submit_start
             
-            log_message("  Job submitted ({:.2f}s)".format(submit_time), self.log_file)
-            log_message("  Job status: {}".format(analysis_job.status), self.log_file)
+            # Wait for job to start
+            time.sleep(2)  # Give it a moment to initialize
             
-            # Wait for completion with periodic status updates
-            log_message("Waiting for job completion...", self.log_file)
-            wait_start = time.time()
-            
-            # Check status every 30 seconds
-            last_status = None
-            status_check_count = 0
-            
-            while analysis_job.status in [SUBMITTED, RUNNING]:
-                time.sleep(30)
-                status_check_count += 1
-                current_time = time.time() - wait_start
-                
-                if analysis_job.status != last_status:
-                    log_message("  Status update: {} (after {:.1f}s)".format(
-                        analysis_job.status, current_time), self.log_file)
-                    last_status = analysis_job.status
-                
-                # Log periodic updates every 5 minutes
-                if status_check_count % 10 == 0:
-                    log_message("  Still running... ({:.1f} minutes elapsed)".format(
-                        current_time / 60), self.log_file)
-            
-            # Final wait (this blocks until completion)
+            # Monitor job status
+            log_message("Monitoring job status...", self.log_file)
             analysis_job.waitForCompletion()
             
-            execution_time = time.time() - wait_start
-            total_time = time.time() - job_start_time
+            # Get final status - try different methods
+            try:
+                # Method 1: Direct from job object
+                final_status = analysis_job.status
+                log_message("  Job status from object: {}".format(final_status), self.log_file)
+            except:
+                final_status = None
             
-            log_message("  Job execution completed in {:.1f}s ({:.1f} minutes)".format(
-                execution_time, execution_time/60), self.log_file)
-            log_message("  Final job status: {}".format(analysis_job.status), self.log_file)
+            try:
+                # Method 2: From mdb.jobs dictionary
+                if job_name in mdb.jobs:
+                    final_status = mdb.jobs[job_name].status
+                    log_message("  Job status from mdb: {}".format(final_status), self.log_file)
+            except:
+                pass
             
-            # Check completion status
-            if analysis_job.status == COMPLETED:
-                log_message("  Job completed successfully!", self.log_file)
-            elif analysis_job.status == ABORTED:
-                log_message("  WARNING: Job aborted!", self.log_file)
+            # Check if ODB file exists (most reliable indicator)
+            odb_file = "{}.odb".format(job_name)
+            if os.path.exists(odb_file):
+                odb_size = os.path.getsize(odb_file) / (1024*1024)  # Size in MB
+                log_message("  ODB file created: {} ({:.1f} MB)".format(odb_file, odb_size), self.log_file)
+                log_message("  Job appears to have completed successfully based on ODB presence", self.log_file)
+                
+                # Check .sta file for completion
+                sta_file = "{}.sta".format(job_name)
+                if os.path.exists(sta_file):
+                    with open(sta_file, 'r') as f:
+                        sta_lines = f.readlines()
+                        if sta_lines:
+                            last_line = sta_lines[-1].strip()
+                            log_message("  Status file last line: {}".format(last_line), self.log_file)
+                            if "THE ANALYSIS HAS COMPLETED SUCCESSFULLY" in last_line.upper():
+                                log_message("  CONFIRMED: Analysis completed successfully", self.log_file)
             else:
-                log_message("  WARNING: Job finished with unexpected status: {}".format(
-                    analysis_job.status), self.log_file)
+                log_message("  WARNING: No ODB file found - job may have failed", self.log_file)
             
-            # Organize output files
-            log_message("Organizing output files...", self.log_file)
-            organize_start = time.time()
+            # Check message file for errors/warnings
+            msg_file = "{}.msg".format(job_name)
+            if os.path.exists(msg_file):
+                with open(msg_file, 'r') as f:
+                    lines = f.readlines()
+                
+                # Look for summary lines
+                for line in lines[-50:]:  # Check last 50 lines
+                    if "ERROR MESSAGES" in line:
+                        log_message("  Message file: {}".format(line.strip()), self.log_file)
+                    elif "WARNING MESSAGES" in line:
+                        log_message("  Message file: {}".format(line.strip()), self.log_file)
+                    elif "THE ANALYSIS HAS" in line.upper():
+                        log_message("  Message file: {}".format(line.strip()), self.log_file)
             
-            moved_files = self.file_organizer.organize_job(job_name)
-            
-            organize_time = time.time() - organize_start
-            log_message("  File organization completed ({:.2f}s)".format(organize_time), self.log_file)
-            log_message("  Organized {} files".format(len(moved_files)), self.log_file)
-            
-            # List organized files
-            for moved_file in moved_files:
-                log_message("    -> {}".format(moved_file.name), self.log_file)
-
-            # Extract and analyze results
-            log_message("Starting post-processing...", self.log_file)
-            post_start = time.time()
-            
-            extraction_success = self.extract_and_analyze_results(job_name)
-            
-            post_time = time.time() - post_start
-            log_message("  Post-processing completed ({:.2f}s)".format(post_time), self.log_file)
-            
-            if extraction_success:
-                log_message("  Data extraction and analysis: SUCCESS", self.log_file)
+            # Determine success based on ODB existence
+            if os.path.exists(odb_file):
+                log_message("  Job completed (ODB exists)", self.log_file)
+                return job_name
             else:
-                log_message("  Data extraction and analysis: FAILED", self.log_file)
-            
-            log_message("=== JOB SUBMISSION COMPLETED ===", self.log_file)
-            log_message("Total job time: {:.1f}s ({:.1f} minutes)".format(total_time, total_time/60), self.log_file)
-            
-            return job_name
+                log_message("  Job failed (no ODB found)", self.log_file)
+                return None
             
         except Exception as e:
-            total_time = time.time() - job_start_time
-            log_message("ERROR in submit_job after {:.1f}s: {}".format(total_time, str(e)), self.log_file)
-            import traceback
-            log_message("Full traceback:", self.log_file)
-            log_message(traceback.format_exc(), self.log_file)
+            log_message("ERROR in submit_job: {}".format(str(e)), self.log_file)
             raise
-
+        
     def run_single_simulation(self, parameters):
         """Run single simulation with given parameters - ALL NANOMETER UNITS"""
         log_message("=== STARTING SINGLE SIMULATION ===", self.log_file)
@@ -817,6 +832,14 @@ class SimulationRunner:
             step_time = time.time() - step_start
             log_message("  Analysis step creation completed ({:.1f}s)".format(step_time), self.log_file)
             
+            # Create output requests
+            log_message("Phase 2b: Output requests", self.log_file)
+            output_start = time.time()
+            self.create_output_requests()
+
+            output_time = time.time() - output_start
+            log_message("  Output requests creation completed ({:.1f}s)".format(output_time), self.log_file)
+
             # Create surfaces
             log_message("Phase 3: Surface creation", self.log_file)
             surface_start = time.time()
@@ -851,6 +874,13 @@ class SimulationRunner:
             job_time = time.time() - job_start
             log_message("  Job execution completed ({:.1f}s)".format(job_time), self.log_file)
             
+            # After job completion, list all files created
+            log_message("Files in current directory after job:", self.log_file)
+            for file in os.listdir('.'):
+                if job_name in file:
+                    file_size = os.path.getsize(file) / 1024  # Size in KB
+                    log_message("  {}: {:.1f} KB".format(file, file_size), self.log_file)
+
             simulation_time = time.time() - simulation_start
             
             log_message("=== SINGLE SIMULATION COMPLETED ===", self.log_file)

@@ -1,0 +1,29 @@
+# -*- coding: mbcs -*-
+from part import *
+from material import *
+from section import *
+from assembly import *
+from mesh import *
+from step import *
+from load import *
+from job import *
+mdb.Model(name='PermeationModel')
+mdb.models['PermeationModel'].Material(name='PET')
+mdb.models['PermeationModel'].materials['PET'].Diffusivity(table=((1000000.0, 
+    ), ))
+mdb.models['PermeationModel'].materials['PET'].Solubility(table=((1e-33, ), ))
+mdb.models['PermeationModel'].Material(name='interlayer')
+mdb.models['PermeationModel'].materials['interlayer'].Diffusivity(table=((
+    50000000.0, ), ))
+mdb.models['PermeationModel'].materials['interlayer'].Solubility(table=((2e-33, 
+    ), ))
+mdb.models['PermeationModel'].Material(name='barrier')
+mdb.models['PermeationModel'].materials['barrier'].Diffusivity(table=((0.01, ), 
+    ))
+mdb.models['PermeationModel'].materials['barrier'].Solubility(table=((1e-36, ), 
+    ))
+mdb.models['PermeationModel'].Material(name='air_crack')
+mdb.models['PermeationModel'].materials['air_crack'].Diffusivity(table=((
+    24000000000000.0, ), ))
+mdb.models['PermeationModel'].materials['air_crack'].Solubility(table=((4e-29, 
+    ), ))

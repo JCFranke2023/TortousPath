@@ -1,0 +1,143 @@
+# -*- coding: mbcs -*-
+from part import *
+from material import *
+from section import *
+from assembly import *
+from mesh import *
+from step import *
+from load import *
+from job import *
+mdb.Model(name='PermeationModel')
+mdb.models['PermeationModel'].Material(name='PET')
+mdb.models['PermeationModel'].materials['PET'].Diffusivity(table=((1000000.0, 
+    ), ))
+mdb.models['PermeationModel'].materials['PET'].Solubility(table=((1e-33, ), ))
+mdb.models['PermeationModel'].Material(name='interlayer')
+mdb.models['PermeationModel'].materials['interlayer'].Diffusivity(table=((
+    50000000.0, ), ))
+mdb.models['PermeationModel'].materials['interlayer'].Solubility(table=((2e-33, 
+    ), ))
+mdb.models['PermeationModel'].Material(name='barrier')
+mdb.models['PermeationModel'].materials['barrier'].Diffusivity(table=((0.01, ), 
+    ))
+mdb.models['PermeationModel'].materials['barrier'].Solubility(table=((1e-36, ), 
+    ))
+mdb.models['PermeationModel'].Material(name='air_crack')
+mdb.models['PermeationModel'].materials['air_crack'].Diffusivity(table=((
+    24000000000000.0, ), ))
+mdb.models['PermeationModel'].materials['air_crack'].Solubility(table=((4e-29, 
+    ), ))
+mdb.models['PermeationModel'].HomogeneousSolidSection(material='PET', name=
+    'PET_section', thickness=None)
+mdb.models['PermeationModel'].HomogeneousSolidSection(material='interlayer', 
+    name='interlayer_section', thickness=None)
+mdb.models['PermeationModel'].HomogeneousSolidSection(material='barrier', name=
+    'barrier_section', thickness=None)
+mdb.models['PermeationModel'].HomogeneousSolidSection(material='air_crack', 
+    name='air_crack_section', thickness=None)
+mdb.models['PermeationModel'].ConstrainedSketch(name='UnitCell_sketch', 
+    sheetSize=1.0)
+mdb.models['PermeationModel'].sketches['UnitCell_sketch'].rectangle(point1=(
+    0.0, 0.0), point2=(10000.0, 750))
+mdb.models['PermeationModel'].Part(dimensionality=TWO_D_PLANAR, name='UnitCell'
+    , type=DEFORMABLE_BODY)
+mdb.models['PermeationModel'].parts['UnitCell'].BaseShell(sketch=
+    mdb.models['PermeationModel'].sketches['UnitCell_sketch'])
+mdb.models['PermeationModel'].ConstrainedSketch(name='layer_interface_0', 
+    sheetSize=1.0)
+mdb.models['PermeationModel'].sketches['layer_interface_0'].Line(point1=(0.0, 
+    500.0), point2=(10000.0, 500.0))
+mdb.models['PermeationModel'].parts['UnitCell'].PartitionFaceBySketch(faces=
+    mdb.models['PermeationModel'].parts['UnitCell'].faces, sketch=
+    mdb.models['PermeationModel'].sketches['layer_interface_0'])
+mdb.models['PermeationModel'].ConstrainedSketch(name='layer_interface_1', 
+    sheetSize=1.0)
+mdb.models['PermeationModel'].sketches['layer_interface_1'].Line(point1=(0.0, 
+    550.0), point2=(10000.0, 550.0))
+mdb.models['PermeationModel'].parts['UnitCell'].PartitionFaceBySketch(faces=
+    mdb.models['PermeationModel'].parts['UnitCell'].faces, sketch=
+    mdb.models['PermeationModel'].sketches['layer_interface_1'])
+mdb.models['PermeationModel'].ConstrainedSketch(name='layer_interface_2', 
+    sheetSize=1.0)
+mdb.models['PermeationModel'].sketches['layer_interface_2'].Line(point1=(0.0, 
+    600.0), point2=(10000.0, 600.0))
+mdb.models['PermeationModel'].parts['UnitCell'].PartitionFaceBySketch(faces=
+    mdb.models['PermeationModel'].parts['UnitCell'].faces, sketch=
+    mdb.models['PermeationModel'].sketches['layer_interface_2'])
+mdb.models['PermeationModel'].ConstrainedSketch(name='layer_interface_3', 
+    sheetSize=1.0)
+mdb.models['PermeationModel'].sketches['layer_interface_3'].Line(point1=(0.0, 
+    650.0), point2=(10000.0, 650.0))
+mdb.models['PermeationModel'].parts['UnitCell'].PartitionFaceBySketch(faces=
+    mdb.models['PermeationModel'].parts['UnitCell'].faces, sketch=
+    mdb.models['PermeationModel'].sketches['layer_interface_3'])
+mdb.models['PermeationModel'].ConstrainedSketch(name='layer_interface_4', 
+    sheetSize=1.0)
+mdb.models['PermeationModel'].sketches['layer_interface_4'].Line(point1=(0.0, 
+    700.0), point2=(10000.0, 700.0))
+mdb.models['PermeationModel'].parts['UnitCell'].PartitionFaceBySketch(faces=
+    mdb.models['PermeationModel'].parts['UnitCell'].faces, sketch=
+    mdb.models['PermeationModel'].sketches['layer_interface_4'])
+mdb.models['PermeationModel'].ConstrainedSketch(name='Barrier1_crack_1', 
+    sheetSize=1.0)
+mdb.models['PermeationModel'].sketches['Barrier1_crack_1'].Line(point1=(100.0, 
+    550), point2=(100.0, 600))
+mdb.models['PermeationModel'].parts['UnitCell'].PartitionFaceBySketch(faces=
+    mdb.models['PermeationModel'].parts['UnitCell'].faces, sketch=
+    mdb.models['PermeationModel'].sketches['Barrier1_crack_1'])
+mdb.models['PermeationModel'].ConstrainedSketch(name='Barrier2_crack_0', 
+    sheetSize=1.0)
+mdb.models['PermeationModel'].sketches['Barrier2_crack_0'].Line(point1=(2500.0, 
+    650), point2=(2500.0, 700))
+mdb.models['PermeationModel'].parts['UnitCell'].PartitionFaceBySketch(faces=
+    mdb.models['PermeationModel'].parts['UnitCell'].faces, sketch=
+    mdb.models['PermeationModel'].sketches['Barrier2_crack_0'])
+mdb.models['PermeationModel'].ConstrainedSketch(name='Barrier2_crack_1', 
+    sheetSize=1.0)
+mdb.models['PermeationModel'].sketches['Barrier2_crack_1'].Line(point1=(2600.0, 
+    650), point2=(2600.0, 700))
+mdb.models['PermeationModel'].parts['UnitCell'].PartitionFaceBySketch(faces=
+    mdb.models['PermeationModel'].parts['UnitCell'].faces, sketch=
+    mdb.models['PermeationModel'].sketches['Barrier2_crack_1'])
+mdb.models['PermeationModel'].rootAssembly.Instance(dependent=ON, name=
+    'UnitCell-1', part=mdb.models['PermeationModel'].parts['UnitCell'])
+mdb.models['PermeationModel'].parts['UnitCell'].SectionAssignment(region=((
+    mdb.models['PermeationModel'].parts['UnitCell'].faces[7], ), ), 
+    sectionName='PET_section')
+mdb.models['PermeationModel'].parts['UnitCell'].SectionAssignment(region=((
+    mdb.models['PermeationModel'].parts['UnitCell'].faces[6], ), ), 
+    sectionName='interlayer_section')
+mdb.models['PermeationModel'].parts['UnitCell'].SectionAssignment(region=((
+    mdb.models['PermeationModel'].parts['UnitCell'].faces[2], 
+    mdb.models['PermeationModel'].parts['UnitCell'].faces[5]), ), sectionName=
+    'barrier_section')
+mdb.models['PermeationModel'].parts['UnitCell'].SectionAssignment(region=((
+    mdb.models['PermeationModel'].parts['UnitCell'].faces[4], ), ), 
+    sectionName='interlayer_section')
+mdb.models['PermeationModel'].parts['UnitCell'].SectionAssignment(region=((
+    mdb.models['PermeationModel'].parts['UnitCell'].faces[0], 
+    mdb.models['PermeationModel'].parts['UnitCell'].faces[1], 
+    mdb.models['PermeationModel'].parts['UnitCell'].faces[3]), ), sectionName=
+    'barrier_section')
+mdb.models['PermeationModel'].parts['UnitCell'].SectionAssignment(region=((
+    mdb.models['PermeationModel'].parts['UnitCell'].faces[8], ), ), 
+    sectionName='interlayer_section')
+mdb.models['PermeationModel'].parts['UnitCell'].setElementType(elemTypes=(
+    ElemType(elemCode=DC2D4, elemLibrary=STANDARD), ), regions=(
+    mdb.models['PermeationModel'].parts['UnitCell'].faces, ))
+mdb.models['PermeationModel'].parts['UnitCell'].seedPart(size=50.0)
+mdb.models['PermeationModel'].parts['UnitCell'].generateMesh()
+mdb.models['PermeationModel'].rootAssembly.regenerate()
+mdb.models['PermeationModel'].MassDiffusionStep(dcmax=1000.0, initialInc=1.0, 
+    maxInc=3600.0, minInc=1e-06, name='Permeation', previous='Initial', 
+    timePeriod=86400.0)
+del mdb.models['PermeationModel'].fieldOutputRequests['F-Output-1']
+mdb.models['PermeationModel'].FieldOutputRequest(createStepName='Permeation', 
+    name='F-Output-1', variables=('NNC', 'MFL', 'IVOL', 'COORD'))
+del mdb.models['PermeationModel'].historyOutputRequests['H-Output-1']
+mdb.models['PermeationModel'].rootAssembly.Set(name='AllNodes', nodes=
+    mdb.models['PermeationModel'].rootAssembly.instances['UnitCell-1'].nodes)
+mdb.models['PermeationModel'].PredefinedField(createStepName='Initial', 
+    fieldName='NNC', magnitude=0.0, name='InitialConcentration', region=
+    mdb.models['PermeationModel'].rootAssembly.sets['AllNodes'])
+#* TypeError: keyword error on createStepName
