@@ -11,17 +11,31 @@ Model setup completed
 Creating analysis step...
   Mass diffusion step created
   Output requests configured
-Applying boundary conditions...
-  Found 201 top nodes, 201 bottom nodes
-  Inlet BC applied (C=1.0)
-  Outlet BC applied (C=0.0)
-  Flow direction: TOP -> BOTTOM (vertical)
-Submitting job: Job_c100_s10000_o25
-  Model saved: Job_c100_s10000_o25.cae
-  Job submitted
-  Job completed: ODB size = 10.7 MB
-  Analysis completed successfully
-  Organized 6 files to abaqus_files\jobs\Job_c100_s10000_o25
-=== SIMULATION COMPLETED ===
-SUCCESS: Job_c100_s10000_o25
+=== VERIFYING BOUNDARY CONDITIONS ===
+Found 0 boundary conditions:
+=== APPLYING ALL BOUNDARY CONDITIONS ===
+Step 1: Applying concentration BCs (top/bottom)...
+  TOP (INLET): y=750.0 nm, C=1.0, 201 nodes
+  BOTTOM (OUTLET): y=0 nm, C=0.0, 201 nodes
+Step 2: Handling lateral boundaries...
+  Applying periodic boundary conditions on left/right...
+ERROR in apply_all_boundary_conditions: Feature creation failed.
+
+Traceback (most recent call last):
+  File "simulation_runner.py", line 284, in apply_boundary_conditions
+    assembly.Set(nodes=(left_node,), name=left_set_name)
+<unknown>.AbaqusException: Feature creation failed.
+
+
+ERROR in simulation: Feature creation failed.
+
+Traceback (most recent call last):
+  File "simulation_runner.py", line 476, in run_single_simulation
+    self.apply_boundary_conditions(instance)
+  File "simulation_runner.py", line 284, in apply_boundary_conditions
+    assembly.Set(nodes=(left_node,), name=left_set_name)
+<unknown>.AbaqusException: Feature creation failed.
+
+
+FAILED
 === COMPLETED ===

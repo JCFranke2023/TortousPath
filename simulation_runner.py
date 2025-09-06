@@ -183,8 +183,8 @@ class SimulationRunner:
             log_message("  WARNING: Could not configure output requests: {}".format(str(e)), self.log_file)
 
     def apply_boundary_conditions(self, instance):
-        """Apply concentration BCs to top and bottom surfaces"""
-        log_message("Applying boundary conditions...", self.log_file)
+        """Apply ALL boundary conditions: concentration on top/bottom, periodic on left/right"""
+        log_message("=== APPLYING ALL BOUNDARY CONDITIONS ===", self.log_file)
         
         if not ABAQUS_ENV:
             return
@@ -192,77 +192,170 @@ class SimulationRunner:
         try:
             height = self.geometry.total_height
             width = self.geometry.crack_spacing
-            tolerance = 1e-6  # nm
-            
             assembly = self.model.rootAssembly
+            tolerance = 1.0  # nm
             
-            # Method 1: Use getByBoundingBox (more reliable)
-            try:
-                # Select TOP nodes using bounding box
-                top_nodes = instance.nodes.getByBoundingBox(
-                    xMin=-tolerance, 
-                    xMax=width+tolerance,
-                    yMin=height-tolerance, 
-                    yMax=height+tolerance,
-                    zMin=-tolerance, 
-                    zMax=tolerance
+            # PART 1: CONCENTRATION BCs ON TOP AND BOTTOM
+            log_message("Step 1: Applying concentration BCs (top/bottom)...", self.log_file)
+            
+            # Get TOP nodes (y = height) for INLET
+            top_nodes = instance.nodes.getByBoundingBox(
+                xMin=-tolerance,
+                xMax=width+tolerance,
+                yMin=height-tolerance,
+                yMax=height+tolerance,
+                zMin=-tolerance,
+                zMax=tolerance
+            )
+            
+            # Get BOTTOM nodes (y = 0) for OUTLET
+            bottom_nodes = instance.nodes.getByBoundingBox(
+                xMin=-tolerance,
+                xMax=width+tolerance,
+                yMin=-tolerance,
+                yMax=tolerance,
+                zMin=-tolerance,
+                zMax=tolerance
+            )
+            
+            # Apply TOP boundary condition (INLET, C=1)
+            if top_nodes:
+                assembly.Set(nodes=top_nodes, name='TopNodes')
+                self.model.ConcentrationBC(
+                    name='Inlet',
+                    createStepName='Permeation',
+                    region=assembly.sets['TopNodes'],
+                    magnitude=self.inlet_concentration,
+                    distributionType=UNIFORM
                 )
-                
-                # Select BOTTOM nodes using bounding box  
-                bottom_nodes = instance.nodes.getByBoundingBox(
-                    xMin=-tolerance, 
-                    xMax=width+tolerance,
-                    yMin=-tolerance, 
-                    yMax=tolerance,
-                    zMin=-tolerance, 
-                    zMax=tolerance
+                log_message("  TOP (INLET): y={:.1f} nm, C={:.1f}, {} nodes".format(
+                    height, self.inlet_concentration, len(top_nodes)), self.log_file)
+            
+            # Apply BOTTOM boundary condition (OUTLET, C=0)
+            if bottom_nodes:
+                assembly.Set(nodes=bottom_nodes, name='BottomNodes')
+                self.model.ConcentrationBC(
+                    name='Outlet',
+                    createStepName='Permeation',
+                    region=assembly.sets['BottomNodes'],
+                    magnitude=self.outlet_concentration,
+                    distributionType=UNIFORM
                 )
+                log_message("  BOTTOM (OUTLET): y=0 nm, C={:.1f}, {} nodes".format(
+                    self.outlet_concentration, len(bottom_nodes)), self.log_file)
+            
+            # PART 2: PERIODIC BCs ON LEFT AND RIGHT (OPTIONAL)
+            log_message("Step 2: Handling lateral boundaries...", self.log_file)
+            
+            # Option A: True periodic BCs (complex but exact)
+            apply_periodic = True  # Set to True if you want periodic BCs
+            
+            if apply_periodic:
+                log_message("  Applying periodic boundary conditions on left/right...", self.log_file)
                 
-                log_message("  Found {} top nodes, {} bottom nodes".format(
-                    len(top_nodes), len(bottom_nodes)), self.log_file)
+                # Find matching node pairs on left and right boundaries
+                left_nodes_by_y = {}
+                right_nodes_by_y = {}
                 
-                # Apply inlet BC (top)
-                if top_nodes:
-                    assembly.Set(nodes=top_nodes, name='TopNodes')
-                    self.model.ConcentrationBC(
-                        name='Inlet',
-                        createStepName='Permeation',
-                        region=assembly.sets['TopNodes'],
-                        magnitude=self.inlet_concentration
-                    )
-                    log_message("  Inlet BC applied (C=1.0)", self.log_file)
+                for node in instance.nodes:
+                    x = node.coordinates[0]
+                    y = node.coordinates[1]
+                    
+                    # Left boundary (x = 0)
+                    if abs(x - 0.0) < tolerance:
+                        y_key = round(y, 3)
+                        left_nodes_by_y[y_key] = node
+                    
+                    # Right boundary (x = width)
+                    elif abs(x - width) < tolerance:
+                        y_key = round(y, 3)
+                        right_nodes_by_y[y_key] = node
                 
-                # Apply outlet BC (bottom)
-                if bottom_nodes:
-                    assembly.Set(nodes=bottom_nodes, name='BottomNodes')
-                    self.model.ConcentrationBC(
-                        name='Outlet',
-                        createStepName='Permeation',
-                        region=assembly.sets['BottomNodes'],
-                        magnitude=self.outlet_concentration
-                    )
-                    log_message("  Outlet BC applied (C=0.0)", self.log_file)
+                # Create equation constraints for matched pairs
+                paired_count = 0
+                for y_key, left_node in left_nodes_by_y.items():
+                    if y_key in right_nodes_by_y:
+                        right_node = right_nodes_by_y[y_key]
+                        
+                        # Create sets for individual nodes
+                        left_set_name = 'PBC_L_{}'.format(paired_count)
+                        right_set_name = 'PBC_R_{}'.format(paired_count)
+                        
+                        assembly.Set(nodes=(left_node,), name=left_set_name)
+                        assembly.Set(nodes=(right_node,), name=right_set_name)
+                        
+                        # Create equation: C_right = C_left
+                        self.model.Equation(
+                            name='PBC_{}'.format(paired_count),
+                            terms=(
+                                (1.0, right_set_name, 11),   # DOF 11 = concentration
+                                (-1.0, left_set_name, 11)
+                            )
+                        )
+                        paired_count += 1
                 
-                log_message("  Flow direction: TOP -> BOTTOM (vertical)", self.log_file)
+                log_message("  Created {} periodic constraints".format(paired_count), self.log_file)
+            
+            else:
+                # Option B: No-flux (insulated) boundaries - often appropriate for symmetric unit cells
+                log_message("  Using no-flux (insulated) boundary conditions on left/right", self.log_file)
+                log_message("  This is appropriate for symmetric unit cells where flux is parallel to boundaries", self.log_file)
+                # No explicit BC needed - ABAQUS defaults to no-flux
+            
+            # SUMMARY
+            log_message("=== BOUNDARY CONDITION SUMMARY ===", self.log_file)
+            log_message("  TOP (y={:.1f} nm): C = {:.1f} (INLET)".format(height, self.inlet_concentration), self.log_file)
+            log_message("  BOTTOM (y=0 nm): C = {:.1f} (OUTLET)".format(self.outlet_concentration), self.log_file)
+            if apply_periodic:
+                log_message("  LEFT/RIGHT: Periodic (C_left = C_right)", self.log_file)
+            else:
+                log_message("  LEFT/RIGHT: No-flux (insulated)", self.log_file)
+            log_message("  Flow direction: VERTICAL (top to bottom)", self.log_file)
+            
+        except Exception as e:
+            log_message("ERROR in apply_all_boundary_conditions: {}".format(str(e)), self.log_file)
+            import traceback
+            log_message(traceback.format_exc(), self.log_file)
+            raise
+
+    def verify_boundary_conditions(self):
+        """Verify that boundary conditions are correctly applied"""
+        log_message("=== VERIFYING BOUNDARY CONDITIONS ===", self.log_file)
+        
+        if not ABAQUS_ENV:
+            return
+        
+        try:
+            # Check all boundary conditions in the model
+            if hasattr(self.model, 'boundaryConditions'):
+                log_message("Found {} boundary conditions:".format(len(self.model.boundaryConditions)), self.log_file)
                 
-            except Exception as e:
-                # Fallback: Try using edges instead of nodes
-                log_message("  Node selection failed, trying edge-based BCs", self.log_file)
-                
-                # Find edges at top and bottom
-                top_edge = instance.edges.findAt(((width/2, height, 0.0), ))
-                bottom_edge = instance.edges.findAt(((width/2, 0.0, 0.0), ))
-                
-                if top_edge:
-                    assembly.Surface(side1Edges=top_edge, name='TopSurface')
-                    # Note: For edges, you might need to use a different BC type
-                    # or convert to nodes differently
-                
-                raise e
+                for bc_name, bc in self.model.boundaryConditions.items():
+                    log_message("  BC Name: {}".format(bc_name), self.log_file)
+                    
+                    if hasattr(bc, 'magnitude'):
+                        log_message("    Magnitude: {}".format(bc.magnitude), self.log_file)
+                    
+                    if hasattr(bc, 'region'):
+                        region = bc.region
+                        if hasattr(region, 'nodes'):
+                            # Get a sample of node coordinates to verify location
+                            sample_nodes = list(region.nodes)[:5]  # First 5 nodes
+                            y_coords = [n.coordinates[1] for n in sample_nodes]
+                            y_avg = sum(y_coords) / len(y_coords) if y_coords else 0
+                            log_message("    Average Y-coordinate of nodes: {:.1f} nm".format(y_avg), self.log_file)
+                            
+                            if y_avg > self.geometry.total_height * 0.9:
+                                log_message("    -> This BC is at the TOP", self.log_file)
+                            elif y_avg < self.geometry.total_height * 0.1:
+                                log_message("    -> This BC is at the BOTTOM", self.log_file)
+                            else:
+                                log_message("    -> This BC is in the MIDDLE (unexpected!)", self.log_file)
+            else:
+                log_message("No boundary conditions found!", self.log_file)
                 
         except Exception as e:
-            log_message("ERROR applying BCs: {}".format(str(e)), self.log_file)
-            raise
+            log_message("Error verifying BCs: {}".format(str(e)), self.log_file)
 
     def submit_job(self, job_name):
         """Submit and monitor ABAQUS job"""
@@ -376,6 +469,9 @@ class SimulationRunner:
             # Create analysis step
             self.create_analysis_step()
             
+            # Verify orientation
+            self.verify_boundary_conditions()
+
             # Apply boundary conditions
             self.apply_boundary_conditions(instance)
             
