@@ -44,7 +44,8 @@ try:
     import step
     import load
     import job
-    from mesh import ElemType
+    from mesh import ElemType, MeshNodeArray
+    import constraint
     ABAQUS_ENV = True
     log_message("ABAQUS environment detected", LOG_FILE)
 except ImportError:
@@ -277,22 +278,25 @@ class SimulationRunner:
                     if y_key in right_nodes_by_y:
                         right_node = right_nodes_by_y[y_key]
                         
-                        # Create sets for individual nodes
+                        # Create sets for individual nodes - FIXED: Use MeshNodeArray
+                        from mesh import MeshNodeArray
                         left_set_name = 'PBC_L_{}'.format(paired_count)
                         right_set_name = 'PBC_R_{}'.format(paired_count)
                         
-                        assembly.Set(nodes=(left_node,), name=left_set_name)
-                        assembly.Set(nodes=(right_node,), name=right_set_name)
+                        assembly.Set(nodes=MeshNodeArray([left_node]), name=left_set_name)
+                        assembly.Set(nodes=MeshNodeArray([right_node]), name=right_set_name)
                         
-                        # Create equation: C_right = C_left
+                        # Create equation constraint: C_right = C_left
+                        # Note: Equation is a constraint type, created through model.Constraint
                         self.model.Equation(
+                            model=self.model,
                             name='PBC_{}'.format(paired_count),
                             terms=(
                                 (1.0, right_set_name, 11),   # DOF 11 = concentration
                                 (-1.0, left_set_name, 11)
                             )
                         )
-                        paired_count += 1
+                        paired_count += 1                       
                 
                 log_message("  Created {} periodic constraints".format(paired_count), self.log_file)
             

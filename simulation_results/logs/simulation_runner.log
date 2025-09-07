@@ -19,23 +19,19 @@ Step 1: Applying concentration BCs (top/bottom)...
   BOTTOM (OUTLET): y=0 nm, C=0.0, 201 nodes
 Step 2: Handling lateral boundaries...
   Applying periodic boundary conditions on left/right...
-ERROR in apply_all_boundary_conditions: Feature creation failed.
-
+ERROR in apply_all_boundary_conditions: 'Model' object has no attribute 'Equation'
 Traceback (most recent call last):
-  File "simulation_runner.py", line 284, in apply_boundary_conditions
-    assembly.Set(nodes=(left_node,), name=left_set_name)
-<unknown>.AbaqusException: Feature creation failed.
+  File "simulation_runner.py", line 291, in apply_boundary_conditions
+    self.model.Equation(
+AttributeError: 'Model' object has no attribute 'Equation'
 
-
-ERROR in simulation: Feature creation failed.
-
+ERROR in simulation: 'Model' object has no attribute 'Equation'
 Traceback (most recent call last):
-  File "simulation_runner.py", line 476, in run_single_simulation
+  File "simulation_runner.py", line 480, in run_single_simulation
     self.apply_boundary_conditions(instance)
-  File "simulation_runner.py", line 284, in apply_boundary_conditions
-    assembly.Set(nodes=(left_node,), name=left_set_name)
-<unknown>.AbaqusException: Feature creation failed.
-
+  File "simulation_runner.py", line 291, in apply_boundary_conditions
+    self.model.Equation(
+AttributeError: 'Model' object has no attribute 'Equation'
 
 FAILED
 === COMPLETED ===
