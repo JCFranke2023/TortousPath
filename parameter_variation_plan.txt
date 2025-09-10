@@ -1,0 +1,124 @@
+PARAMETER VARIATION AND EVALUATION PLAN
+========================================
+
+1. PARAMETERS TO VARY
+---------------------
+Primary parameters:
+- Crack width (c): 10nm to 1µm (logarithmic spacing)
+- Crack spacing (d): 1µm to 100µm (determines crack density)
+- Crack offset (o): 0 to 0.5 (0=aligned cracks, 0.5=maximum stagger)
+
+Fixed parameters:
+- Number of barrier layers: 2 (constant)
+- Layer thicknesses: as defined in geometry_generator.py
+
+
+2. VARIATION STRATEGY
+--------------------
+Phase 1: Single-parameter studies
+- Fix two parameters at baseline values
+- Vary one parameter systematically (~10 points)
+- Identify sensitivity and critical ranges
+
+Phase 2: Full factorial study
+- 3 levels per parameter (low, medium, high)
+- 3^3 = 27 simulations for complete coverage
+- Capture main effects and interactions
+
+Phase 3: Targeted refinement
+- Add points in regions of high sensitivity
+- Focus on parameter combinations near measured data
+- Fill gaps where response changes rapidly
+
+
+3. OUTPUT METRICS
+----------------
+Primary metrics from each simulation:
+- Steady-state flux J_ss [g/m²/day]
+- Breakthrough time t_b (at 10% of J_ss) [hours]
+- Lag time t_lag (from linear fit) [hours]
+
+Derived metrics:
+- Barrier improvement factor BIF = J_uncoated/J_coated
+- Effective diffusivity D_eff = L²/(6*t_lag)
+- Tortuosity factor τ = D_material/D_eff
+
+
+4. DATA STRUCTURE
+----------------
+results/
+├── simulations/
+│   └── {c}_{d}_{o}/
+│       ├── flux_vs_time.csv
+│       ├── concentration_profiles.csv
+│       └── simulation_log.txt
+├── summary/
+│   ├── parameter_sweep_results.csv
+│   └── performance_metrics.csv
+└── plots/
+    ├── sensitivity/
+    ├── response_surfaces/
+    └── parameter_correlations/
+
+
+5. ANALYSIS WORKFLOW
+-------------------
+Step 1: Run simulation batch
+- Execute parameter combinations
+- Save raw flux data
+
+Step 2: Extract metrics
+- Process flux vs time curves
+- Calculate J_ss, t_b, t_lag
+- Compile into summary table
+
+Step 3: Statistical analysis
+- Calculate main effects
+- Identify parameter interactions
+- Generate response surfaces
+
+Step 4: Visualization
+- Sensitivity plots (parameter vs metric)
+- 2D contour plots (two parameters vs metric)
+- 3D response surfaces
+
+
+6. PARAMETER SETS
+----------------
+Baseline configuration:
+- c = 100nm
+- d = 10µm  
+- o = 0.25
+
+Single-parameter sweeps:
+- c: [10, 20, 50, 100, 200, 500, 1000] nm
+- d: [1, 2, 5, 10, 20, 50, 100] µm
+- o: [0, 0.1, 0.2, 0.25, 0.3, 0.4, 0.5]
+
+Full factorial levels:
+- c: [50, 200, 500] nm
+- d: [5, 20, 50] µm
+- o: [0, 0.25, 0.5]
+
+
+7. IMPLEMENTATION NOTES
+----------------------
+- Simulations run in ~1 minute at current resolution
+- No parallelization needed initially
+- Results automatically saved after each run
+- Post-processing scripts can run independently
+
+- Placeholder for crack density injection:
+  * Format TBD (likely distribution parameters)
+  * Will map measured densities to spacing parameter d
+  * Interface to be defined when data available
+
+
+8. KEY OUTPUTS
+-------------
+Summary report will include:
+- Ranked parameter sensitivity
+- Optimal configurations for minimum permeation
+- Process windows for target performance
+- Correlation matrix between parameters and metrics
+- Recommendations for experimental validation
