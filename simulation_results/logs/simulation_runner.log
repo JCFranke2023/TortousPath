@@ -8,30 +8,20 @@ Parameters: w=100.0nm, s=10000.0nm, o=0.25
 Parameters (nm): width=100.0, spacing=10000.0, offset=0.25
 Geometry created: 9 faces
 Model setup completed
+=== APPLYING PERIODIC BOUNDARY CONDITIONS ===
+  Added 16 equation constraints to keyword block
 Creating analysis step...
   Mass diffusion step created
   Output requests configured
-=== VERIFYING BOUNDARY CONDITIONS ===
-Found 0 boundary conditions:
-=== APPLYING ALL BOUNDARY CONDITIONS ===
-Step 1: Applying concentration BCs (top/bottom)...
+=== APPLYING CONCENTRATION BOUNDARY CONDITIONS ===
   TOP (INLET): y=750.0 nm, C=1.0, 201 nodes
   BOTTOM (OUTLET): y=0 nm, C=0.0, 201 nodes
-Step 2: Handling lateral boundaries...
-  Applying periodic boundary conditions on left/right...
-ERROR in apply_all_boundary_conditions: 'Model' object has no attribute 'Equation'
-Traceback (most recent call last):
-  File "simulation_runner.py", line 291, in apply_boundary_conditions
-    self.model.Equation(
-AttributeError: 'Model' object has no attribute 'Equation'
-
-ERROR in simulation: 'Model' object has no attribute 'Equation'
-Traceback (most recent call last):
-  File "simulation_runner.py", line 480, in run_single_simulation
-    self.apply_boundary_conditions(instance)
-  File "simulation_runner.py", line 291, in apply_boundary_conditions
-    self.model.Equation(
-AttributeError: 'Model' object has no attribute 'Equation'
-
-FAILED
+Submitting job: Job_c100_s10000_o25
+  Model saved: Job_c100_s10000_o25.cae
+  Job submitted
+  Job completed: ODB size = 10.7 MB
+  Analysis completed successfully
+  WARNING: Could not organize files: [WinError 183] Eine Datei kann nicht erstellt werden, wenn sie bereits vorhanden ist: 'Job_c100_s10000_o25.odb' -> 'abaqus_files\\jobs\\Job_c100_s10000_o25\\Job_c100_s10000_o25.odb'
+=== SIMULATION COMPLETED ===
+SUCCESS: Job_c100_s10000_o25
 === COMPLETED ===

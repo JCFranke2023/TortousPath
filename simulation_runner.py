@@ -45,7 +45,6 @@ try:
     import load
     import job
     from mesh import ElemType, MeshNodeArray
-    import constraint
     ABAQUS_ENV = True
     log_message("ABAQUS environment detected", LOG_FILE)
 except ImportError:
@@ -183,9 +182,80 @@ class SimulationRunner:
         except Exception as e:
             log_message("  WARNING: Could not configure output requests: {}".format(str(e)), self.log_file)
 
-    def apply_boundary_conditions(self, instance):
-        """Apply ALL boundary conditions: concentration on top/bottom, periodic on left/right"""
-        log_message("=== APPLYING ALL BOUNDARY CONDITIONS ===", self.log_file)
+    def apply_periodic_boundary_conditions(self, instance):
+        """Apply periodic boundary conditions on left/right edges"""
+        log_message("=== APPLYING PERIODIC BOUNDARY CONDITIONS ===", self.log_file)
+        
+        if not ABAQUS_ENV:
+            return
+        
+        try:
+            from mesh import MeshNodeArray
+            
+            height = self.geometry.total_height
+            width = self.geometry.crack_spacing
+            assembly = self.model.rootAssembly
+            tolerance = 1.0  # nm
+            
+            # Find matching node pairs on left and right boundaries
+            left_nodes_by_y = {}
+            right_nodes_by_y = {}
+            
+            for node in instance.nodes:
+                x = node.coordinates[0]
+                y = node.coordinates[1]
+                
+                # Left boundary (x = 0)
+                if abs(x - 0.0) < tolerance:
+                    y_key = round(y, 3)
+                    left_nodes_by_y[y_key] = node
+                
+                # Right boundary (x = width)
+                elif abs(x - width) < tolerance:
+                    y_key = round(y, 3)
+                    right_nodes_by_y[y_key] = node
+            
+            # Create sets and collect equation data
+            paired_count = 0
+            equation_data = []
+            
+            for y_key, left_node in left_nodes_by_y.items():
+                if y_key in right_nodes_by_y:
+                    right_node = right_nodes_by_y[y_key]
+                    
+                    # Create sets for individual nodes
+                    left_set_name = 'PBC_L_{}'.format(paired_count)
+                    right_set_name = 'PBC_R_{}'.format(paired_count)
+                    
+                    assembly.Set(nodes=MeshNodeArray([left_node]), name=left_set_name)
+                    assembly.Set(nodes=MeshNodeArray([right_node]), name=right_set_name)
+                    
+                    # Try importing Equation from the model level
+                    # This should work the same as in CreateModel.py
+                    from abaqus import mdb
+                    import interaction
+                    
+                    # Use the model from mdb to ensure we have the right object
+                    current_model = mdb.models[self.model_name]
+                    current_model.rootAssembly.regenerate()
+                    current_model.Equation(
+                        name='PBC_{}'.format(paired_count),
+                        terms=(
+                            (1.0, right_set_name, 11),   # DOF 11 = concentration
+                            (-1.0, left_set_name, 11)
+                        )
+                    )
+                    paired_count += 1
+
+            log_message("  Added {} equation constraints to keyword block".format(paired_count), self.log_file)
+            
+        except Exception as e:
+            log_message("ERROR in apply_periodic_boundary_conditions: {}".format(str(e)), self.log_file)
+            raise
+
+    def apply_concentration_boundary_conditions(self, instance):
+        """Apply concentration boundary conditions on top/bottom"""
+        log_message("=== APPLYING CONCENTRATION BOUNDARY CONDITIONS ===", self.log_file)
         
         if not ABAQUS_ENV:
             return
@@ -195,9 +265,6 @@ class SimulationRunner:
             width = self.geometry.crack_spacing
             assembly = self.model.rootAssembly
             tolerance = 1.0  # nm
-            
-            # PART 1: CONCENTRATION BCs ON TOP AND BOTTOM
-            log_message("Step 1: Applying concentration BCs (top/bottom)...", self.log_file)
             
             # Get TOP nodes (y = height) for INLET
             top_nodes = instance.nodes.getByBoundingBox(
@@ -245,121 +312,9 @@ class SimulationRunner:
                 log_message("  BOTTOM (OUTLET): y=0 nm, C={:.1f}, {} nodes".format(
                     self.outlet_concentration, len(bottom_nodes)), self.log_file)
             
-            # PART 2: PERIODIC BCs ON LEFT AND RIGHT (OPTIONAL)
-            log_message("Step 2: Handling lateral boundaries...", self.log_file)
-            
-            # Option A: True periodic BCs (complex but exact)
-            apply_periodic = True  # Set to True if you want periodic BCs
-            
-            if apply_periodic:
-                log_message("  Applying periodic boundary conditions on left/right...", self.log_file)
-                
-                # Find matching node pairs on left and right boundaries
-                left_nodes_by_y = {}
-                right_nodes_by_y = {}
-                
-                for node in instance.nodes:
-                    x = node.coordinates[0]
-                    y = node.coordinates[1]
-                    
-                    # Left boundary (x = 0)
-                    if abs(x - 0.0) < tolerance:
-                        y_key = round(y, 3)
-                        left_nodes_by_y[y_key] = node
-                    
-                    # Right boundary (x = width)
-                    elif abs(x - width) < tolerance:
-                        y_key = round(y, 3)
-                        right_nodes_by_y[y_key] = node
-                
-                # Create equation constraints for matched pairs
-                paired_count = 0
-                for y_key, left_node in left_nodes_by_y.items():
-                    if y_key in right_nodes_by_y:
-                        right_node = right_nodes_by_y[y_key]
-                        
-                        # Create sets for individual nodes - FIXED: Use MeshNodeArray
-                        from mesh import MeshNodeArray
-                        left_set_name = 'PBC_L_{}'.format(paired_count)
-                        right_set_name = 'PBC_R_{}'.format(paired_count)
-                        
-                        assembly.Set(nodes=MeshNodeArray([left_node]), name=left_set_name)
-                        assembly.Set(nodes=MeshNodeArray([right_node]), name=right_set_name)
-                        
-                        # Create equation constraint: C_right = C_left
-                        # Note: Equation is a constraint type, created through model.Constraint
-                        self.model.Equation(
-                            model=self.model,
-                            name='PBC_{}'.format(paired_count),
-                            terms=(
-                                (1.0, right_set_name, 11),   # DOF 11 = concentration
-                                (-1.0, left_set_name, 11)
-                            )
-                        )
-                        paired_count += 1                       
-                
-                log_message("  Created {} periodic constraints".format(paired_count), self.log_file)
-            
-            else:
-                # Option B: No-flux (insulated) boundaries - often appropriate for symmetric unit cells
-                log_message("  Using no-flux (insulated) boundary conditions on left/right", self.log_file)
-                log_message("  This is appropriate for symmetric unit cells where flux is parallel to boundaries", self.log_file)
-                # No explicit BC needed - ABAQUS defaults to no-flux
-            
-            # SUMMARY
-            log_message("=== BOUNDARY CONDITION SUMMARY ===", self.log_file)
-            log_message("  TOP (y={:.1f} nm): C = {:.1f} (INLET)".format(height, self.inlet_concentration), self.log_file)
-            log_message("  BOTTOM (y=0 nm): C = {:.1f} (OUTLET)".format(self.outlet_concentration), self.log_file)
-            if apply_periodic:
-                log_message("  LEFT/RIGHT: Periodic (C_left = C_right)", self.log_file)
-            else:
-                log_message("  LEFT/RIGHT: No-flux (insulated)", self.log_file)
-            log_message("  Flow direction: VERTICAL (top to bottom)", self.log_file)
-            
         except Exception as e:
-            log_message("ERROR in apply_all_boundary_conditions: {}".format(str(e)), self.log_file)
-            import traceback
-            log_message(traceback.format_exc(), self.log_file)
+            log_message("ERROR in apply_concentration_boundary_conditions: {}".format(str(e)), self.log_file)
             raise
-
-    def verify_boundary_conditions(self):
-        """Verify that boundary conditions are correctly applied"""
-        log_message("=== VERIFYING BOUNDARY CONDITIONS ===", self.log_file)
-        
-        if not ABAQUS_ENV:
-            return
-        
-        try:
-            # Check all boundary conditions in the model
-            if hasattr(self.model, 'boundaryConditions'):
-                log_message("Found {} boundary conditions:".format(len(self.model.boundaryConditions)), self.log_file)
-                
-                for bc_name, bc in self.model.boundaryConditions.items():
-                    log_message("  BC Name: {}".format(bc_name), self.log_file)
-                    
-                    if hasattr(bc, 'magnitude'):
-                        log_message("    Magnitude: {}".format(bc.magnitude), self.log_file)
-                    
-                    if hasattr(bc, 'region'):
-                        region = bc.region
-                        if hasattr(region, 'nodes'):
-                            # Get a sample of node coordinates to verify location
-                            sample_nodes = list(region.nodes)[:5]  # First 5 nodes
-                            y_coords = [n.coordinates[1] for n in sample_nodes]
-                            y_avg = sum(y_coords) / len(y_coords) if y_coords else 0
-                            log_message("    Average Y-coordinate of nodes: {:.1f} nm".format(y_avg), self.log_file)
-                            
-                            if y_avg > self.geometry.total_height * 0.9:
-                                log_message("    -> This BC is at the TOP", self.log_file)
-                            elif y_avg < self.geometry.total_height * 0.1:
-                                log_message("    -> This BC is at the BOTTOM", self.log_file)
-                            else:
-                                log_message("    -> This BC is in the MIDDLE (unexpected!)", self.log_file)
-            else:
-                log_message("No boundary conditions found!", self.log_file)
-                
-        except Exception as e:
-            log_message("Error verifying BCs: {}".format(str(e)), self.log_file)
 
     def submit_job(self, job_name):
         """Submit and monitor ABAQUS job"""
@@ -424,6 +379,7 @@ class SimulationRunner:
                 return job_name
             else:
                 log_message("  Job failed - no ODB created", self.log_file)
+                self.check_job_errors(job_name)
                 return None
                 
         except Exception as e:
@@ -453,6 +409,57 @@ class SimulationRunner:
         except Exception as e:
             log_message("  WARNING: Could not organize files: {}".format(str(e)), self.log_file)
 
+    def check_job_errors(self, job_name):
+            """Check job error files for debugging"""
+            log_message("Checking job error files...", self.log_file)
+            
+            # Check .dat file for errors
+            dat_file = "{}.dat".format(job_name)
+            if os.path.exists(dat_file):
+                with open(dat_file, 'r') as f:
+                    content = f.read()
+                    if "ERROR" in content or "WARNING" in content:
+                        log_message("=== DAT FILE ERRORS/WARNINGS ===", self.log_file)
+                        for line in content.split('\n'):
+                            if "ERROR" in line or "WARNING" in line:
+                                log_message(line, self.log_file)
+            
+            # Check .msg file for errors
+            msg_file = "{}.msg".format(job_name)
+            if os.path.exists(msg_file):
+                with open(msg_file, 'r') as f:
+                    content = f.read()
+                    if "ERROR" in content:
+                        log_message("=== MSG FILE ERRORS ===", self.log_file)
+                        for line in content.split('\n'):
+                            if "ERROR" in line:
+                                log_message(line, self.log_file)
+            
+            # Check .sta file
+            sta_file = "{}.sta".format(job_name)
+            if os.path.exists(sta_file):
+                with open(sta_file, 'r') as f:
+                    last_lines = f.readlines()[-10:]  # Last 10 lines
+                    log_message("=== STA FILE (last 10 lines) ===", self.log_file)
+                    for line in last_lines:
+                        log_message(line.strip(), self.log_file)
+
+            # Check .inp file around the error line
+            inp_file = "{}.inp".format(job_name)
+            if os.path.exists(inp_file):
+                with open(inp_file, 'r') as f:
+                    lines = f.readlines()
+                    # Look for the error line mentioned (6709 in this case)
+                    log_message("=== INP FILE CHECK ===", self.log_file)
+                    # Find *EQUATION keywords
+                    for i, line in enumerate(lines):
+                        if '*EQUATION' in line.upper():
+                            log_message("Found *EQUATION at line {}: {}".format(i+1, line.strip()), self.log_file)
+                            # Show next few lines
+                            for j in range(1, min(5, len(lines)-i)):
+                                log_message("  Line {}: {}".format(i+j+1, lines[i+j].strip()), self.log_file)
+                            break
+
     def run_single_simulation(self, parameters):
         """Run complete simulation with given parameters"""
         log_message("=== RUNNING SIMULATION ===", self.log_file)
@@ -470,14 +477,14 @@ class SimulationRunner:
             if not instance:
                 raise ValueError("Model setup failed")
             
+            # Apply periodic boundary conditions (before analysis step)
+            self.apply_periodic_boundary_conditions(instance)
+            
             # Create analysis step
             self.create_analysis_step()
             
-            # Verify orientation
-            self.verify_boundary_conditions()
-
-            # Apply boundary conditions
-            self.apply_boundary_conditions(instance)
+            # Apply concentration boundary conditions (after step creation)
+            self.apply_concentration_boundary_conditions(instance)
             
             # Generate job name
             job_name = 'Job_c{:.0f}_s{:.0f}_o{:.0f}'.format(
