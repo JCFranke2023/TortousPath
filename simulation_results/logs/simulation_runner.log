@@ -1,0 +1,37 @@
+=== SIMULATION RUNNER STARTED ===
+ABAQUS environment detected
+=== MAIN EXECUTION ===
+Initializing SimulationRunner: PermeationModel
+=== RUNNING SIMULATION ===
+Parameters: w=100.0nm, s=10000.0nm, o=0.25
+=== SETTING UP MODEL ===
+Parameters (nm): width=100.0, spacing=10000.0, offset=0.25
+Geometry created: 9 faces
+Model setup completed
+Creating analysis step...
+  Mass diffusion step created
+  Output requests configured
+=== VERIFYING BOUNDARY CONDITIONS ===
+Found 0 boundary conditions:
+=== APPLYING ALL BOUNDARY CONDITIONS ===
+Step 1: Applying concentration BCs (top/bottom)...
+  TOP (INLET): y=750.0 nm, C=1.0, 201 nodes
+  BOTTOM (OUTLET): y=0 nm, C=0.0, 201 nodes
+Step 2: Handling lateral boundaries...
+  Applying periodic boundary conditions on left/right...
+ERROR in apply_all_boundary_conditions: 'Model' object has no attribute 'Equation'
+Traceback (most recent call last):
+  File "simulation_runner.py", line 291, in apply_boundary_conditions
+    self.model.Equation(
+AttributeError: 'Model' object has no attribute 'Equation'
+
+ERROR in simulation: 'Model' object has no attribute 'Equation'
+Traceback (most recent call last):
+  File "simulation_runner.py", line 480, in run_single_simulation
+    self.apply_boundary_conditions(instance)
+  File "simulation_runner.py", line 291, in apply_boundary_conditions
+    self.model.Equation(
+AttributeError: 'Model' object has no attribute 'Equation'
+
+FAILED
+=== COMPLETED ===
