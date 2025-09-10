@@ -172,16 +172,30 @@ class SimulationRunner:
             if 'H-Output-1' in self.model.historyOutputRequests:
                 del self.model.historyOutputRequests['H-Output-1']
             
-            # Create field output for concentration and flux
+            # Field output - can reduce frequency since we have history
             self.model.FieldOutputRequest(
                 name='F-Output-1',
                 createStepName='Permeation',
-                variables=('NNC', 'MFL', 'IVOL', 'COORD')
+                variables=('NNC', 'MFL'),
+                frequency=20  # Every 20th increment instead of every increment
             )
-            log_message("  Output requests configured", self.log_file)
             
-        except Exception as e:
-            log_message("  WARNING: Could not configure output requests: {}".format(str(e)), self.log_file)
+            # History output for integrated flux at surfaces
+            # Need to create surface sets first
+            assembly = self.model.rootAssembly
+            
+            # Create history output for top and bottom surfaces
+            if 'TopNodes' in assembly.sets and 'BottomNodes' in assembly.sets:
+                self.model.HistoryOutputRequest(
+                    name='H-Output-1',
+                    createStepName='Permeation',
+                    variables=('FMFL',),  # Integrated mass flux
+                    region=assembly.sets['BottomNodes'],
+                    frequency=1  # Every increment for smooth curves
+                )
+                log_message("  History output for integrated flux configured", self.log_file)
+            
+            log_message("  Output requests configured", self.log_file)
 
     def apply_boundary_conditions(self, instance):
         """Apply ALL boundary conditions: concentration on top/bottom, periodic on left/right"""
