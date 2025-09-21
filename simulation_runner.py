@@ -45,6 +45,7 @@ try:
     import load
     import job
     from mesh import ElemType, MeshNodeArray
+    import interaction
     ABAQUS_ENV = True
     log_message("ABAQUS environment detected", LOG_FILE)
 except ImportError:
@@ -83,7 +84,7 @@ class SimulationRunner:
         self.dcmax = 1000.0              # Max concentration change per increment
         
         # Boundary conditions
-        self.inlet_concentration = 1.0   # Top boundary
+        self.inlet_concentration = 41.15e-27  # Top boundary: 41.15 mol/m³ = 41.15e-27 mol/nm³
         self.outlet_concentration = 0.0  # Bottom boundary
 
     def setup_model(self, crack_width=100.0, crack_spacing=10000.0, crack_offset=0.25):
@@ -196,6 +197,10 @@ class SimulationRunner:
             
             log_message("  Output requests configured", self.log_file)
 
+        except Exception as e:
+            log_message("  WARNING: Could not configure output requests: {}".format(str(e)), self.log_file)
+            # Continue anyway - ABAQUS will use defaults
+
     def apply_periodic_boundary_conditions(self, instance):
         """Apply periodic boundary conditions on left/right edges"""
         log_message("=== APPLYING PERIODIC BOUNDARY CONDITIONS ===", self.log_file)
@@ -204,8 +209,7 @@ class SimulationRunner:
             return
         
         try:
-            from mesh import MeshNodeArray
-            
+
             height = self.geometry.total_height
             width = self.geometry.crack_spacing
             assembly = self.model.rootAssembly
@@ -244,10 +248,7 @@ class SimulationRunner:
                     assembly.Set(nodes=MeshNodeArray([left_node]), name=left_set_name)
                     assembly.Set(nodes=MeshNodeArray([right_node]), name=right_set_name)
                     
-                    # Try importing Equation from the model level
-                    # This should work the same as in CreateModel.py
-                    from abaqus import mdb
-                    import interaction
+
                     
                     # Use the model from mdb to ensure we have the right object
                     current_model = mdb.models[self.model_name]
@@ -300,7 +301,7 @@ class SimulationRunner:
                 zMax=tolerance
             )
             
-            # Apply TOP boundary condition (INLET, C=1)
+            # Apply TOP boundary condition (INLET, C=41.15)
             if top_nodes:
                 assembly.Set(nodes=top_nodes, name='TopNodes')
                 self.model.ConcentrationBC(
