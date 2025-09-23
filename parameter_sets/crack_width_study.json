@@ -1,7 +1,0 @@
-{
-  "description": "Parameter sweep studying effect of crack width",
-  "crack_widths": [50e-9, 100e-9, 200e-9, 500e-9, 1e-6],
-  "crack_spacings": [10e-6],
-  "crack_offsets": [0.25],
-  "notes": "Crack width range: 50nm to 1μm, fixed spacing=10μm, offset=0.25"
-}

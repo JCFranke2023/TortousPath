@@ -106,7 +106,7 @@ class ODBExtractor:
                     continue
                 
                 nnc = frame.fieldOutputs['NNC11']
-                
+
                 # Collect concentrations from both rows
                 bottom_concentrations = []
                 second_concentrations = []
@@ -116,6 +116,8 @@ class ODBExtractor:
                         if value.nodeLabel in bottom_nodes:
                             bottom_concentrations.append(value.data)
                         elif value.nodeLabel in second_nodes:
+                            if frame_count == 30:
+                                print(f'{value.nodeLabel=}, {value.data=}')
                             second_concentrations.append(value.data)
                 
                 if bottom_concentrations and second_concentrations:

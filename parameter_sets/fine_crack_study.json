@@ -1,8 +1,0 @@
-{
-  "description": "Fine crack width resolution study for sensitivity analysis",
-  "crack_widths": [10e-9, 25e-9, 50e-9, 75e-9, 100e-9, 150e-9, 200e-9, 300e-9, 500e-9, 750e-9, 1e-6],
-  "crack_spacings": [10e-6],
-  "crack_offsets": [0.0],
-  "notes": "High resolution crack width study, aligned cracks for baseline comparison",
-  "mesh_refinement": "extra_fine"
-}

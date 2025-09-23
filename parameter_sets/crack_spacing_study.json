@@ -1,7 +1,0 @@
-{
-  "description": "Parameter sweep studying effect of crack spacing (crack density)",
-  "crack_widths": [100e-9],
-  "crack_spacings": [5e-6, 10e-6, 20e-6, 50e-6, 100e-6],
-  "crack_offsets": [0.25],
-  "notes": "Crack spacing range: 5μm to 100μm, fixed width=100nm, offset=0.25"
-}

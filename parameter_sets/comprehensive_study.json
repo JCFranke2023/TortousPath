@@ -1,9 +1,0 @@
-{
-  "description": "Comprehensive parameter sweep covering key design space",
-  "crack_widths": [50e-9, 100e-9, 500e-9],
-  "crack_spacings": [5e-6, 10e-6, 50e-6],
-  "crack_offsets": [0.0, 0.25, 0.5],
-  "notes": "3x3x3 = 27 simulations covering main parameter ranges",
-  "estimated_runtime_hours": 54,
-  "priority": "high"
-}

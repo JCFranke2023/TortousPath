@@ -1,7 +1,0 @@
-{
-  "description": "Baseline single simulation with typical crack parameters",
-  "crack_width": 100e-9,
-  "crack_spacing": 10e-6,
-  "crack_offset": 0.25,
-  "notes": "Reference case: 100nm crack width, 10μm spacing, 25% offset"
-}

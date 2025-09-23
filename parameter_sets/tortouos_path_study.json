@@ -1,7 +1,0 @@
-{
-  "description": "Parameter sweep studying tortuous path effect via crack offset",
-  "crack_widths": [100e-9],
-  "crack_spacings": [10e-6],
-  "crack_offsets": [0.0, 0.1, 0.2, 0.3, 0.4, 0.5],
-  "notes": "Offset range: 0 (aligned) to 0.5 (max stagger), fixed width=100nm, spacing=10μm"
-}
