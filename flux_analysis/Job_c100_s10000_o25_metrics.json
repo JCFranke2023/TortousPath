@@ -1,0 +1,24 @@
+{
+  "job_name": "Job_c100_s10000_o25",
+  "parameters": {
+    "crack_width": 100.0,
+    "crack_spacing": 10000.0,
+    "crack_offset": 0.25
+  },
+  "metrics": {
+    "steady_state_flux": 2.0022560058937255e+25,
+    "steady_state_flux_units": "g/(m\u00b2\u00b7day)",
+    "breakthrough_time_s": 5.0,
+    "breakthrough_time_h": 0.001388888888888889,
+    "lag_time_s": 12.913800081910574,
+    "lag_time_h": 0.003587166689419604,
+    "time_to_90_percent_s": 129.0,
+    "time_to_90_percent_h": 0.035833333333333335,
+    "total_time_s": 86400.0,
+    "total_time_h": 24.0,
+    "crack_width_nm": 100.0,
+    "crack_spacing_nm": 10000.0,
+    "crack_offset": 0.25,
+    "crack_fraction": 0.01
+  }
+}

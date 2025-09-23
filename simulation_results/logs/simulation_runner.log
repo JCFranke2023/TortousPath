@@ -17,9 +17,10 @@ Creating analysis step...
   TOP (INLET): y=750.0 nm, C=0.0, 201 nodes
   BOTTOM (OUTLET): y=0 nm, C=0.0, 201 nodes
 Submitting job: Job_c100_s10000_o25
-  Model saved: Job_c100_s10000_o25.cae
+  Using alternative CAE name: Job_c100_s10000_o25_1758618907.cae
+  Model saved: Job_c100_s10000_o25_1758618907.cae
   Job submitted
-  Job completed: ODB size = 0.7 MB
+  Job completed: ODB size = 0.5 MB
   Analysis completed successfully
   WARNING: Could not organize files: [WinError 183] Eine Datei kann nicht erstellt werden, wenn sie bereits vorhanden ist: 'Job_c100_s10000_o25.odb' -> 'abaqus_files\\jobs\\Job_c100_s10000_o25\\Job_c100_s10000_o25.odb'
 === SIMULATION COMPLETED ===

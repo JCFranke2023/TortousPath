@@ -77,14 +77,14 @@ class SimulationRunner:
             self.geometry = GeometryGenerator()
         
         # Simulation parameters (consistent units: nanometers, seconds)
-        self.total_time = 86400.0        # 24 hours
+        self.total_time = 86400.0 / 2       # 86400 s = 24 hours
         self.initial_increment = 1.0     # 1 second
         self.max_increment = 3600.0      # 1 hour
         self.min_increment = 1e-6        # 1 microsecond
         self.dcmax = 1000.0              # Max concentration change per increment
         
         # Boundary conditions
-        self.inlet_concentration = 41.15e-27  # Top boundary: 41.15 mol/m³ = 41.15e-27 mol/nm³
+        self.inlet_concentration = 1.74e-24 #2.56e-27  # Top boundary: 2.56 mol/m³ = 2.56e-27 mol/nm³
         self.outlet_concentration = 0.0  # Bottom boundary
 
     def setup_model(self, crack_width=100.0, crack_spacing=10000.0, crack_offset=0.25):
@@ -120,11 +120,12 @@ class SimulationRunner:
             assembly = self.model.rootAssembly
             instance = assembly.Instance(name='UnitCell-1', part=part, dependent=ON)
             
+            # Create mesh
+            self.geometry.create_mesh(part)         
+
             # Assign materials BEFORE meshing
             self.geometry.assign_materials_to_regions(part, instance)
-            
-            # Create mesh
-            self.geometry.create_mesh(part)
+
             
             # CRITICAL: Regenerate assembly after meshing
             assembly.regenerate()
@@ -154,6 +155,7 @@ class SimulationRunner:
                 minInc=self.min_increment,
                 dcmax=self.dcmax
             )
+    
             log_message("  Mass diffusion step created", self.log_file)
             
             # Create output requests
@@ -176,24 +178,9 @@ class SimulationRunner:
             self.model.FieldOutputRequest(
                 name='F-Output-1',
                 createStepName='Permeation',
-                variables=('NNC', 'MFL'),
-                frequency=20  # Every 20th increment instead of every increment
+                variables=('NNC',),
+                frequency=5  # Every 20th increment instead of every increment
             )
-            
-            # History output for integrated flux at surfaces
-            # Need to create surface sets first
-            assembly = self.model.rootAssembly
-            
-            # Create history output for top and bottom surfaces
-            if 'TopNodes' in assembly.sets and 'BottomNodes' in assembly.sets:
-                self.model.HistoryOutputRequest(
-                    name='H-Output-1',
-                    createStepName='Permeation',
-                    variables=('FMFL',),  # Integrated mass flux
-                    region=assembly.sets['BottomNodes'],
-                    frequency=1  # Every increment for smooth curves
-                )
-                log_message("  History output for integrated flux configured", self.log_file)
             
             log_message("  Output requests configured", self.log_file)
 
@@ -301,7 +288,7 @@ class SimulationRunner:
                 zMax=tolerance
             )
             
-            # Apply TOP boundary condition (INLET, C=41.15)
+            # Apply TOP boundary condition (INLET, C=2.56e-27 mol/nm³)
             if top_nodes:
                 assembly.Set(nodes=top_nodes, name='TopNodes')
                 self.model.ConcentrationBC(

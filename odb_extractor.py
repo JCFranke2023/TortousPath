@@ -28,12 +28,7 @@ class ODBExtractor:
         try:
             odb = openOdb(odb_path)
             
-            # Try history output first
-            data = self._try_history_extraction(odb)
-            
-            # Fallback to field output
-            if data is None:
-                data = self._try_field_extraction(odb)
+            data = self._try_field_extraction(odb)
             
             odb.close()
             
@@ -51,36 +46,8 @@ class ODBExtractor:
             print("  ERROR: {}".format(str(e)))
             return False
     
-    def _try_history_extraction(self, odb):
-        """Try to extract from history output"""
-        try:
-            step = odb.steps['Permeation']
-            
-            for region_name, region in step.historyRegions.items():
-                if 'Bottom' in region_name or 'Outlet' in region_name or 'H-Output' in region_name:
-                    if 'FMFL' in region.historyOutputs:
-                        fmfl = region.historyOutputs['FMFL']
-                        
-                        data = {
-                            'time_s': [],
-                            'flux_kg_m2_s': []
-                        }
-                        
-                        for time, value in fmfl.data:
-                            data['time_s'].append(time)
-                            # Assuming unit area for now - adjust if needed
-                            data['flux_kg_m2_s'].append(abs(value))
-                        
-                        print("  Extracted {} points from history".format(len(data['time_s'])))
-                        return data
-            
-            return None
-            
-        except:
-            return None
-    
     def _try_field_extraction(self, odb):
-        """Try to extract from field output"""
+        """Extract NNC values for manual flux calculation"""
         try:
             assembly = odb.rootAssembly
             instance_name = assembly.instances.keys()[0]
@@ -90,120 +57,106 @@ class ODBExtractor:
             
             data = {
                 'time_s': [],
-                'flux_kg_m2_s': []
+                'nnc_bottom': [],
+                'nnc_second': [],
+                'gradient': []
             }
             
-            # Get mesh information
+            # Get mesh information and find second-lowest row
             nodes = instance.nodes
-            print("  Instance has {} nodes".format(len(nodes)))
+            y_coords = [node.coordinates[1] for node in nodes]
+            y_min = min(y_coords)
             
-            # Find bottom nodes (y ~ 0)
-            bottom_node_labels = []
-            tolerance = 1.0  # nm
+            # Find unique y-coordinates and sort them
+            unique_y = sorted(list(set(y_coords)))
+            if len(unique_y) < 2:
+                print("  ERROR: Not enough y-levels for gradient calculation")
+                return None
+            
+            y_bottom = unique_y[0]  # Lowest row
+            y_second = unique_y[1]  # Second-lowest row
+            tolerance = 0.1  # nm
+            
+            print("  Bottom row: y = {:.3f} nm".format(y_bottom))
+            print("  Second row: y = {:.3f} nm".format(y_second))
+            print("  Distance: {:.3f} nm".format(y_second - y_bottom))
+            
+            # Create node label maps for fast lookup
+            bottom_nodes = set()
+            second_nodes = set()
+            
             for node in nodes:
-                if abs(node.coordinates[1]) < tolerance:
-                    bottom_node_labels.append(node.label)
+                y = node.coordinates[1]
+                if abs(y - y_bottom) < tolerance:
+                    bottom_nodes.add(node.label)
+                elif abs(y - y_second) < tolerance:
+                    second_nodes.add(node.label)
             
-            print("  Found {} bottom nodes".format(len(bottom_node_labels)))
+            print("  Found {} bottom nodes, {} second-row nodes".format(
+                len(bottom_nodes), len(second_nodes)))
             
-            if not bottom_node_labels:
-                print("  WARNING: No bottom nodes found, trying alternative method")
-                # Find minimum y-coordinate
-                y_coords = [node.coordinates[1] for node in nodes]
-                y_min = min(y_coords)
-                print("  Minimum y-coordinate: {}".format(y_min))
-                for node in nodes:
-                    if abs(node.coordinates[1] - y_min) < tolerance:
-                        bottom_node_labels.append(node.label)
-                print("  Found {} nodes at y_min".format(len(bottom_node_labels)))
-            
-            # Extract flux at each frame
+            # Extract NNC at each frame
             frame_count = 0
             for frame in step.frames:
                 time = frame.frameValue
                 frame_count += 1
                 
-                if 'MFL' in frame.fieldOutputs:
-                    mfl = frame.fieldOutputs['MFL']
+                if 'NNC11' not in frame.fieldOutputs:
+                    print("  Frame {} has no NNC field".format(frame_count))
+                    continue
+                
+                nnc = frame.fieldOutputs['NNC11']
+                
+                # Collect concentrations from both rows
+                bottom_concentrations = []
+                second_concentrations = []
+                
+                for value in nnc.values:
+                    if hasattr(value, 'nodeLabel') and value.nodeLabel:
+                        if value.nodeLabel in bottom_nodes:
+                            bottom_concentrations.append(value.data)
+                        elif value.nodeLabel in second_nodes:
+                            second_concentrations.append(value.data)
+                
+                if bottom_concentrations and second_concentrations:
+                    avg_bottom = sum(bottom_concentrations) / len(bottom_concentrations)
+                    avg_second = sum(second_concentrations) / len(second_concentrations)
+                    gradient = (avg_second - avg_bottom) / (y_second - y_bottom)
                     
-                    # Get bottom surface flux
-                    bottom_flux = []
+                    data['time_s'].append(time)
+                    data['nnc_bottom'].append(avg_bottom)
+                    data['nnc_second'].append(avg_second)
+                    data['gradient'].append(gradient)
                     
-                    # Method 1: Direct value access
-                    for value in mfl.values:
-                        # Check different possible attributes
-                        node_label = None
-                        if hasattr(value, 'nodeLabel') and value.nodeLabel is not None:
-                            node_label = value.nodeLabel
-                        elif hasattr(value, 'node') and value.node is not None:
-                            node_label = value.node.label
-                        
-                        if node_label and node_label in bottom_node_labels:
-                            # MFL is a vector (MFL1, MFL2, MFL3) for 3D or (MFL1, MFL2) for 2D
-                            # For vertical flux, we want the y-component
-                            if len(value.data) >= 2:
-                                flux_y = value.data[1]  # y-component
-                                bottom_flux.append(abs(flux_y))
-                    
-                    # Method 2: If method 1 fails, try getting subset
-                    if not bottom_flux and hasattr(mfl, 'getSubset'):
-                        try:
-                            # Create node set for bottom nodes
-                            from odbAccess import NodeSet
-                            bottom_set = instance.NodeSet(name='temp_bottom', nodes=bottom_node_labels)
-                            subset = mfl.getSubset(region=bottom_set)
-                            for value in subset.values:
-                                if len(value.data) >= 2:
-                                    bottom_flux.append(abs(value.data[1]))
-                        except:
-                            pass
-                    
-                    if bottom_flux:
-                        # Average flux
-                        avg_flux = sum(bottom_flux) / len(bottom_flux)
-                        data['time_s'].append(time)
-                        data['flux_kg_m2_s'].append(avg_flux)
-                        
-                        if frame_count <= 3:  # Debug first few frames
-                            print("    Frame {}: t={:.1f}s, {} flux values, avg={:.3e}".format(
-                                frame_count, time, len(bottom_flux), avg_flux))
-                    else:
-                        print("    Frame {}: No flux values extracted".format(frame_count))
-                        
-                elif 'NNC' in frame.fieldOutputs:
-                    print("  Frame has NNC (concentration) but not MFL (flux)")
-                else:
-                    print("  Frame has neither MFL nor NNC")
+                    if frame_count <= 3:  # Debug first few frames
+                        print("    Frame {}: bottom={:.3e}, second={:.3e}, grad={:.3e}".format(
+                            frame_count, avg_bottom, avg_second, gradient))
             
             if data['time_s']:
-                print("  Extracted {} time points from {} frames".format(
-                    len(data['time_s']), frame_count))
+                print("  Extracted {} time points for gradient calculation".format(len(data['time_s'])))
                 return data
             else:
-                print("  No data extracted from {} frames".format(frame_count))
-            
-            return None
-            
+                print("  No NNC data extracted")
+                return None
+                
         except Exception as e:
-            import traceback
-            print("  Field extraction error: {}".format(str(e)))
-            print("  Traceback:")
-            traceback.print_exc()
+            print("  NNC extraction error: {}".format(str(e)))
             return None
-    
+
     def _save_csv(self, data, csv_path):
-        """Save data to CSV without pandas"""
+        """Save NNC data for manual flux calculation"""
         with open(str(csv_path), 'w') as f:
-            # Header
-            f.write('time_s,flux_kg_m2_s,flux_g_m2_day\n')
+            # Header for NNC data
+            f.write('time_s,nnc_bottom,nnc_second,gradient_per_nm\n')
             
             # Data rows
             for i in range(len(data['time_s'])):
                 time = data['time_s'][i]
-                flux_kg = data['flux_kg_m2_s'][i]
-                flux_g = flux_kg * 1000 * 86400  # Convert to g/m²/day
-                f.write('{},{},{}\n'.format(time, flux_kg, flux_g))
-    
+                nnc_bottom = data['nnc_bottom'][i]
+                nnc_second = data['nnc_second'][i]
+                gradient = data['gradient'][i]
+                f.write('{},{},{},{}\n'.format(time, nnc_bottom, nnc_second, gradient))
+
     def process_batch(self, job_list_file):
         """Process multiple ODB files from a list"""
         with open(job_list_file, 'r') as f:

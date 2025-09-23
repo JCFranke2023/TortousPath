@@ -13,18 +13,18 @@ class MaterialProperties:
     def __init__(self):
         # Water vapor diffusivity (nm²/s) at 37°C - converted from m²/s
         self.diffusivities = {
-            'PET': 1.0e6,           # 1.0e-12 m²/s = 1.0e6 nm²/s
-            'interlayer': 5.0e7,    # 5.0e-11 m²/s = 5.0e7 nm²/s
-            'barrier': 1.0e-2,      # 1.0e-16 m²/s = 1.0e-2 nm²/s (effectively impermeable)
-            'air_crack': 2.4e13     # 2.4e-5 m²/s = 2.4e13 nm²/s
+            'PET': 1e5,         # 1.44e-7 m²/s = 1.44e11 nm²/s
+            'interlayer': 1e5,  # 5.0e-11 m²/s = 5.0e7 nm²/s
+            'barrier': 1e5,     #1.0e-2,      # 1.0e-16 m²/s = 1.0e-2 nm²/s (effectively impermeable)
+            'air_crack': 1e5    # 2.4e-5 m²/s = 2.4e13 nm²/s
         }
         
         # Solubility coefficients (mol/nm³/Pa) - converted from m³
         self.solubilities = {
-            'PET': 1.0e-33,      # 1.0e-6 mol/m³/Pa = 1.0e-33 mol/nm³/Pa
-            'interlayer': 2.0e-33,
-            'barrier': 1.0e-36,
-            'air_crack': 4.0e-29  # 4.0e-2 mol/m³/Pa = 4.0e-29 mol/nm³/Pa
+            'PET': 0.263e-27,      # 1.0e-6 mol/m³/Pa = 1.0e-33 mol/nm³/Pa
+            'interlayer': 0.263e-27, #2.0e-33,
+            'barrier': 0.263e-27, #1.0e-36,
+            'air_crack': 0.263e-27, #4.0e-29  # 4.0e-2 mol/m³/Pa = 4.0e-29 mol/nm³/Pa
         }
         
         # Layer thickness defaults (nanometers)
