@@ -1,0 +1,34 @@
+[2025-09-24 22:01:45] [INFO] ============================================================
+[2025-09-24 22:01:45] [INFO] PECVD BARRIER COATING SIMULATION BATCH
+[2025-09-24 22:01:45] [INFO] Simulation: pure_PET
+[2025-09-24 22:01:45] [INFO] Target stage: 4 - Run simulation + organize + extract + calculate flux (complete)
+[2025-09-24 22:01:45] [INFO] ============================================================
+[2025-09-24 22:01:45] [INFO] Configuration saved to simulations\pure_PET\config.json
+[2025-09-24 22:01:45] [INFO] ============================================================
+[2025-09-24 22:01:45] [INFO] STAGE 1: Running ABAQUS simulation
+[2025-09-24 22:01:45] [INFO] Job name: Job_c100_s10000_o25
+[2025-09-24 22:01:45] [INFO] Parameters: {'crack_width': 100.0, 'crack_spacing': 10000.0, 'crack_offset': 0.25}
+[2025-09-24 22:01:45] [INFO] Executing: abaqus cae noGUI=simulation_runner.py -- --crack_width 100.0 --crack_spacing 10000.0 --crack_offset 0.25 --log_dir simulations\pure_PET\logs
+[2025-09-24 22:02:13] [INFO] Simulation completed successfully
+[2025-09-24 22:02:13] [INFO] ODB file created: Job_c100_s10000_o25.odb
+[2025-09-24 22:02:14] [INFO] ============================================================
+[2025-09-24 22:02:14] [INFO] STAGE 2: Initial file organization
+[2025-09-24 22:02:14] [INFO] Initial organization complete: {'moved': 5, 'deleted': 0, 'skipped': 0}
+[2025-09-24 22:02:14] [INFO] ============================================================
+[2025-09-24 22:02:14] [INFO] STAGE 3: Extracting data from ODB
+[2025-09-24 22:02:14] [INFO] Found ODB: Job_c100_s10000_o25.odb
+[2025-09-24 22:02:14] [INFO] Executing: abaqus python odb_extractor.py --odb "Job_c100_s10000_o25.odb" --job Job_c100_s10000_o25 --output "simulations\pure_PET\extracted_data" --log_dir "simulations\pure_PET\logs"
+[2025-09-24 22:02:20] [INFO] Data extracted to: simulations\pure_PET\extracted_data\nnc_gradients\Job_c100_s10000_o25_flux.csv
+[2025-09-24 22:02:20] [INFO] ============================================================
+[2025-09-24 22:02:20] [INFO] STAGE 4: Calculating flux and metrics
+[2025-09-24 22:02:20] [INFO] Processing: simulations\pure_PET\extracted_data\nnc_gradients\Job_c100_s10000_o25_flux.csv
+[2025-09-24 22:02:20] [INFO] Executing: python flux_postprocessor.py "simulations/pure_PET/extracted_data/nnc_gradients/Job_c100_s10000_o25_flux.csv" --output "simulations/pure_PET/analysis" --log_dir "simulations/pure_PET/logs"
+[2025-09-24 22:02:23] [INFO] Flux calculation completed
+[2025-09-24 22:02:23] [INFO] ============================================================
+[2025-09-24 22:02:23] [INFO] STAGE 5: Final file organization
+[2025-09-24 22:02:23] [INFO] Final organization complete: {'moved': 6, 'failed': 0}
+[2025-09-24 22:02:23] [INFO] All critical files successfully organized
+[2025-09-24 22:02:23] [INFO] ============================================================
+[2025-09-24 22:02:23] [INFO] BATCH EXECUTION COMPLETED SUCCESSFULLY
+[2025-09-24 22:02:23] [INFO] Total duration: 0:00:38.607856
+[2025-09-24 22:02:23] [INFO] Results saved in: simulations\pure_PET

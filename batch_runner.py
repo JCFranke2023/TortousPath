@@ -144,55 +144,24 @@ class SimulationBatch:
             return False
     
     def run_stage_2_organize(self):
-        """Stage 2: Organize ABAQUS files"""
+        """Stage 2: Initial organization of ABAQUS files (non-critical files)"""
         self.log("=" * 60)
-        self.log("STAGE 2: Organizing ABAQUS files")
+        self.log("STAGE 2: Initial file organization")
         
         try:
-            # Find all ABAQUS files for this job
-            file_patterns = {
-                'models': ['.cae', '.odb'],
-                'abaqus_files/inputs': ['.inp'],
-                'abaqus_files/logs': ['.msg', '.sta', '.dat', '.prt'],
-                'abaqus_files/temp': ['.lck', '.023', '.ipm', '.rpy', '.rec']
-            }
+            # Import the new manage_files module
+            from manage_files import organize_initial
             
-            files_moved = 0
+            # Do initial organization (skip critical files that might be locked)
+            result = organize_initial(self.simulation_name, self.job_name, cleanup_temp=True)
             
-            # Search in current directory and abaqus_files
-            search_paths = [Path('.'), Path('abaqus_files') / 'jobs' / self.job_name]
-            
-            for search_path in search_paths:
-                if not search_path.exists():
-                    continue
-                    
-                for subdir, extensions in file_patterns.items():
-                    target_dir = self.sim_dir / subdir
-                    
-                    for ext in extensions:
-                        pattern = f"{self.job_name}*{ext}"
-                        for file_path in search_path.glob(pattern):
-                            if file_path.is_file():
-                                target_path = target_dir / file_path.name
-                                
-                                # Special handling for CAE and ODB - keep accessible
-                                if ext in ['.cae', '.odb']:
-                                    # Copy instead of move for primary files
-                                    shutil.copy2(file_path, target_path)
-                                    self.log(f"Copied {file_path.name} to {target_dir}")
-                                else:
-                                    shutil.move(str(file_path), str(target_path))
-                                    self.log(f"Moved {file_path.name} to {target_dir}")
-                                
-                                files_moved += 1
-            
-            self.log(f"Organized {files_moved} files")
+            self.log(f"Initial organization complete: {result}")
             return True
             
         except Exception as e:
             self.log(f"Exception in Stage 2: {str(e)}", "ERROR")
-            return False
-    
+            return False 
+
     def run_stage_3_extract(self):
         """Stage 3: Extract data from ODB"""
         self.log("=" * 60)
@@ -200,12 +169,8 @@ class SimulationBatch:
         
         try:
             # Find ODB file
-            odb_path = self.sim_dir / 'models' / f"{self.job_name}.odb"
-            
-            if not odb_path.exists():
-                # Try alternate location
-                odb_path = Path('abaqus_files') / 'jobs' / self.job_name / f"{self.job_name}.odb"
-            
+            odb_path = Path(f"{self.job_name}.odb")
+                        
             if not odb_path.exists():
                 self.log(f"ODB file not found: {odb_path}", "ERROR")
                 return False
@@ -296,6 +261,44 @@ class SimulationBatch:
             self.log(f"Exception in Stage 4: {str(e)}", "ERROR")
             return False
     
+    def run_stage_5_final_organize(self):
+        """Stage 5: Final organization - move remaining critical files"""
+        self.log("=" * 60)
+        self.log("STAGE 5: Final file organization")
+        
+        try:
+            # Import the new manage_files module
+            from manage_files import organize_final
+            
+            # Move critical files that were potentially locked earlier
+            result = organize_final(self.simulation_name, self.job_name)
+            
+            self.log(f"Final organization complete: {result}")
+            
+            # Verify all files are in place
+            from manage_files import SimulationFileManager
+            manager = SimulationFileManager(self.simulation_name)
+            locations = manager.verify_files(self.job_name)
+            
+            # Check for any files still in root
+            issues = []
+            for file_type, location in locations.items():
+                if "STILL IN ROOT" in location or "NOT FOUND" in location:
+                    issues.append(f"{file_type}: {location}")
+            
+            if issues:
+                self.log("WARNING: Some files were not moved:", "WARNING")
+                for issue in issues:
+                    self.log(f"  {issue}", "WARNING")
+            else:
+                self.log("All critical files successfully organized")
+            
+            return True
+            
+        except Exception as e:
+            self.log(f"Exception in Stage 5: {str(e)}", "ERROR")
+            return False
+
     def _save_summary_metrics(self, metrics):
         """Save summary metrics and generate report"""
         try:
@@ -354,6 +357,15 @@ class SimulationBatch:
         self.log(f"Target stage: {self.stage} - {self.stages[self.stage]}")
         self.log("=" * 60)
         
+        # Update stages definition to include stage 5
+        self.stages = {
+            1: "Run simulation only",
+            2: "Run simulation + initial organize",
+            3: "Run simulation + organize + extract ODB",
+            4: "Run simulation + organize + extract + calculate flux",
+            5: "Complete pipeline with final organization"
+        }
+        
         # Save configuration
         self.save_config()
         
@@ -366,7 +378,7 @@ class SimulationBatch:
             if not success:
                 self.log("Stage 1 failed. Stopping execution.", "ERROR")
         
-        # Stage 2: Organize files
+        # Stage 2: Initial organization (non-critical files)
         if self.stage >= 2 and success:
             time.sleep(1)  # Brief pause to ensure files are written
             success = self.run_stage_2_organize()
@@ -385,6 +397,13 @@ class SimulationBatch:
             if not success:
                 self.log("Stage 4 failed. Stopping execution.", "ERROR")
         
+        # Stage 5: Final organization (critical files)
+        if self.stage >= 4 and success:  # Run stage 5 if stage 4 was requested
+            success = self.run_stage_5_final_organize()
+            # Don't stop on stage 5 failure, just warn
+            if not success:
+                self.log("Stage 5 had issues but continuing.", "WARNING")
+        
         # Final summary
         end_time = datetime.now()
         duration = end_time - self.start_time
@@ -399,7 +418,6 @@ class SimulationBatch:
         self.log(f"Results saved in: {self.sim_dir}")
         
         return success
-
 
 def get_user_input():
     """Interactive prompt for simulation parameters"""

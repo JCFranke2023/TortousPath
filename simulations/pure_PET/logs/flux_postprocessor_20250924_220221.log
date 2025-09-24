@@ -1,0 +1,54 @@
+Flux PostProcessor Log - 2025-09-24T22:02:21.867251
+============================================================
+[2025-09-24 22:02:21] [INFO] Initialized FluxPostProcessor
+[2025-09-24 22:02:21] [INFO]   Output directory: simulations\pure_PET\analysis
+[2025-09-24 22:02:21] [INFO]   Log file: simulations\pure_PET\logs\flux_postprocessor_20250924_220221.log
+[2025-09-24 22:02:21] [INFO]   D_PET = 1.00e+05 nm²/s
+[2025-09-24 22:02:21] [INFO] Command line arguments:
+[2025-09-24 22:02:21] [INFO]   csv_file: simulations/pure_PET/extracted_data/nnc_gradients/Job_c100_s10000_o25_flux.csv
+[2025-09-24 22:02:21] [INFO]   batch: None
+[2025-09-24 22:02:21] [INFO]   output: simulations/pure_PET/analysis
+[2025-09-24 22:02:21] [INFO]   simulation: None
+[2025-09-24 22:02:21] [INFO]   job: None
+[2025-09-24 22:02:21] [INFO]   log_dir: simulations/pure_PET/logs
+[2025-09-24 22:02:21] [INFO]   no_plots: False
+[2025-09-24 22:02:21] [INFO]   quiet: False
+[2025-09-24 22:02:21] [INFO] 
+============================================================
+[2025-09-24 22:02:21] [INFO] PROCESSING NNC DATA
+[2025-09-24 22:02:21] [INFO] ============================================================
+[2025-09-24 22:02:21] [INFO] Input file: simulations/pure_PET/extracted_data/nnc_gradients/Job_c100_s10000_o25_flux.csv
+[2025-09-24 22:02:21] [INFO] Parsed parameters: width=100.0 nm, spacing=10000.0 nm, offset=0.25
+[2025-09-24 22:02:21] [INFO] Loaded 6 data points
+[2025-09-24 22:02:21] [INFO] Time range: 0.0 to 43200.0 seconds
+[2025-09-24 22:02:21] [INFO] Gradient range: 0.00e+00 to 1.39e-27 mol/nm^4
+[2025-09-24 22:02:21] [INFO] 
+============================================================
+[2025-09-24 22:02:21] [INFO] CALCULATING MASS FLUX
+[2025-09-24 22:02:21] [INFO] ============================================================
+[2025-09-24 22:02:21] [INFO] Using Fick's law: J = D_PET × |dC/dy|
+[2025-09-24 22:02:21] [INFO] D_PET = 1.00e+05 nm²/s
+[2025-09-24 22:02:21] [INFO] Max flux: 2.16e+02 g/(m²·day)
+[2025-09-24 22:02:21] [INFO] Final flux: 2.16e+02 g/(m²·day)
+[2025-09-24 22:02:21] [INFO] Total cumulative: 1.08e+02 g/m²
+[2025-09-24 22:02:21] [INFO] 
+============================================================
+[2025-09-24 22:02:21] [INFO] CALCULATING PERMEATION METRICS
+[2025-09-24 22:02:21] [INFO] ============================================================
+[2025-09-24 22:02:21] [INFO] Steady-state flux: 2.16e+02 g/(m²·day)
+[2025-09-24 22:02:21] [INFO] Breakthrough time: 0.00 hours
+[2025-09-24 22:02:21] [INFO] Time to 90% steady-state: 0.07 hours
+[2025-09-24 22:02:21] [INFO]   Saved flux data: Job_c100_s10000_o25_processed_flux.csv
+[2025-09-24 22:02:21] [INFO]   Saved metrics: Job_c100_s10000_o25_metrics.json
+[2025-09-24 22:02:21] [INFO] Creating plots for Job_c100_s10000_o25...
+[2025-09-24 22:02:23] [INFO]   Saved plot: Job_c100_s10000_o25_analysis.png
+[2025-09-24 22:02:23] [INFO] 
+ Analysis completed for Job_c100_s10000_o25
+[2025-09-24 22:02:23] [INFO]   Output files saved to: simulations\pure_PET\analysis
+[2025-09-24 22:02:23] [INFO]   Log file: simulations\pure_PET\logs\flux_postprocessor_20250924_220221.log
+[2025-09-24 22:02:23] [INFO] 
+Key metrics:
+[2025-09-24 22:02:23] [INFO]   Steady-state flux: 216.48373136145878 g/(m²·day)
+[2025-09-24 22:02:23] [INFO]   Breakthrough time: 0.0025 hours
+[2025-09-24 22:02:23] [INFO]   Lag time: None hours
+[2025-09-24 22:02:23] [INFO]   Log file: simulations\pure_PET\logs\flux_postprocessor_20250924_220221.log

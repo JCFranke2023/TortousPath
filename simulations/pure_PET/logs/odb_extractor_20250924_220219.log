@@ -1,0 +1,51 @@
+ODB Extractor Log - 2025-09-24T22:02:19.056215
+============================================================
+[2025-09-24 22:02:19] [INFO] ODB Extractor initialized
+[2025-09-24 22:02:19] [INFO] Output directory: simulations\pure_PET\extracted_data
+[2025-09-24 22:02:19] [INFO] Log file: simulations\pure_PET\logs\odb_extractor_20250924_220219.log
+[2025-09-24 22:02:19] [INFO] Command line arguments:
+[2025-09-24 22:02:19] [INFO]   odb: Job_c100_s10000_o25.odb
+[2025-09-24 22:02:19] [INFO]   job: Job_c100_s10000_o25
+[2025-09-24 22:02:19] [INFO]   batch: None
+[2025-09-24 22:02:19] [INFO]   output: simulations\pure_PET\extracted_data
+[2025-09-24 22:02:19] [INFO]   simulation: None
+[2025-09-24 22:02:19] [INFO]   log_dir: simulations\pure_PET\logs
+[2025-09-24 22:02:19] [INFO]   no_json: False
+[2025-09-24 22:02:19] [INFO]   quiet: False
+[2025-09-24 22:02:19] [INFO] ============================================================
+[2025-09-24 22:02:19] [INFO] Starting extraction for job: Job_c100_s10000_o25
+[2025-09-24 22:02:19] [INFO] ODB path: Job_c100_s10000_o25.odb
+[2025-09-24 22:02:19] [INFO] Opening ODB file...
+[2025-09-24 22:02:19] [INFO]   ODB opened successfully
+[2025-09-24 22:02:19] [INFO] Extracting NNC field data...
+[2025-09-24 22:02:19] [INFO]   Getting assembly and instance information...
+[2025-09-24 22:02:19] [INFO]     Using instance: UNITCELL-1
+[2025-09-24 22:02:19] [INFO]     Found Permeation step with 6 frames
+[2025-09-24 22:02:19] [INFO]   Analyzing mesh structure...
+[2025-09-24 22:02:19] [INFO]     Bottom row: y = 0.000 nm
+[2025-09-24 22:02:19] [INFO]     Second row: y = 50.000 nm
+[2025-09-24 22:02:19] [INFO]     Distance: 50.000 nm
+[2025-09-24 22:02:19] [INFO]     Found 201 bottom nodes, 201 second-row nodes
+[2025-09-24 22:02:19] [INFO]   Processing 6 frames...
+[2025-09-24 22:02:19] [DEBUG]       Frame 1: bottom=0.000e+00, second=0.000e+00, grad=0.000e+00
+[2025-09-24 22:02:19] [DEBUG]       Frame 2: bottom=0.000e+00, second=1.203e-26, grad=2.406e-28
+[2025-09-24 22:02:19] [DEBUG]       Frame 3: bottom=0.000e+00, second=6.943e-26, grad=1.389e-27
+[2025-09-24 22:02:20] [INFO]     Processed frame 6/6
+[2025-09-24 22:02:20] [INFO]   Extracted 6 time points for gradient calculation
+[2025-09-24 22:02:20] [INFO]   ODB closed
+[2025-09-24 22:02:20] [INFO]   Saving CSV data to simulations\pure_PET\extracted_data\nnc_gradients\Job_c100_s10000_o25_flux.csv...
+[2025-09-24 22:02:20] [INFO]     CSV saved successfully (6 rows)
+[2025-09-24 22:02:20] [INFO]   Saved NNC data: simulations\pure_PET\extracted_data\nnc_gradients\Job_c100_s10000_o25_flux.csv
+[2025-09-24 22:02:20] [INFO]   Saving raw JSON data to simulations\pure_PET\extracted_data\raw_json\Job_c100_s10000_o25_raw.json...
+[2025-09-24 22:02:20] [INFO]     JSON saved successfully
+[2025-09-24 22:02:20] [INFO]   Saved raw JSON: simulations\pure_PET\extracted_data\raw_json\Job_c100_s10000_o25_raw.json
+[2025-09-24 22:02:20] [INFO] Extraction completed successfully
+[2025-09-24 22:02:20] [INFO]   Frames extracted: 6
+[2025-09-24 22:02:20] [INFO]   Time range: 0.0 to 43200.0 s
+[2025-09-24 22:02:20] [INFO] Extraction result saved to: simulations\pure_PET\extracted_data\extraction_result.json
+[2025-09-24 22:02:20] [INFO] 
+Extraction successful
+[2025-09-24 22:02:20] [INFO] Output files:
+[2025-09-24 22:02:20] [INFO]   nnc_csv: simulations\pure_PET\extracted_data\nnc_gradients\Job_c100_s10000_o25_flux.csv
+[2025-09-24 22:02:20] [INFO]   raw_json: simulations\pure_PET\extracted_data\raw_json\Job_c100_s10000_o25_raw.json
+[2025-09-24 22:02:20] [INFO] Log file: simulations\pure_PET\logs\odb_extractor_20250924_220219.log
