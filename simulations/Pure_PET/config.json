@@ -1,0 +1,17 @@
+{
+  "simulation_name": "Pure_PET",
+  "job_name": "Job_c100_s10000_o25",
+  "parameters": {
+    "crack_width": 100.0,
+    "crack_spacing": 10000.0,
+    "crack_offset": 0.25
+  },
+  "stage": 4,
+  "start_time": "2025-09-24T14:07:39.730167",
+  "stages_to_run": [
+    "Run simulation only",
+    "Run simulation + organize files",
+    "Run simulation + organize + extract ODB",
+    "Run simulation + organize + extract + calculate flux (complete)"
+  ]
+}

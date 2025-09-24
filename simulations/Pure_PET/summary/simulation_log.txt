@@ -1,0 +1,18 @@
+[2025-09-24 14:07:39] [INFO] ============================================================
+[2025-09-24 14:07:39] [INFO] PECVD BARRIER COATING SIMULATION BATCH
+[2025-09-24 14:07:39] [INFO] Simulation: Pure_PET
+[2025-09-24 14:07:39] [INFO] Target stage: 4 - Run simulation + organize + extract + calculate flux (complete)
+[2025-09-24 14:07:39] [INFO] ============================================================
+[2025-09-24 14:07:39] [INFO] Configuration saved to simulations\Pure_PET\config.json
+[2025-09-24 14:07:39] [INFO] ============================================================
+[2025-09-24 14:07:39] [INFO] STAGE 1: Running ABAQUS simulation
+[2025-09-24 14:07:39] [INFO] Job name: Job_c100_s10000_o25
+[2025-09-24 14:07:39] [INFO] Parameters: {'crack_width': 100.0, 'crack_spacing': 10000.0, 'crack_offset': 0.25}
+[2025-09-24 14:07:39] [INFO] Executing: abaqus cae noGUI=simulation_runner.py -- --crack_width 100.0 --crack_spacing 10000.0 --crack_offset 0.25
+[2025-09-24 14:07:45] [INFO] Simulation completed successfully
+[2025-09-24 14:07:45] [WARNING] WARNING: ODB file not found
+[2025-09-24 14:07:45] [ERROR] Stage 1 failed. Stopping execution.
+[2025-09-24 14:07:45] [INFO] ============================================================
+[2025-09-24 14:07:45] [ERROR] BATCH EXECUTION FAILED
+[2025-09-24 14:07:45] [INFO] Total duration: 0:00:05.746344
+[2025-09-24 14:07:45] [INFO] Results saved in: simulations\Pure_PET
