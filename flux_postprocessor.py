@@ -1,6 +1,7 @@
 """
 Pure Python post-processor for PECVD barrier coating flux data
 Processes NNC gradient data to calculate mass flux using Fick's law within PET
+Updated with file logging support
 """
 
 import os
@@ -34,13 +35,14 @@ except ImportError:
     materials = DefaultMaterials()
 
 class FluxPostProcessor:
-    def __init__(self, output_dir=None, verbose=True):
+    def __init__(self, output_dir=None, verbose=True, log_dir=None):
         """
-        Initialize flux post-processor
+        Initialize flux post-processor with logging
         
         Args:
             output_dir: Base directory for analysis outputs (e.g., simulations/sim_name/analysis)
-            verbose: Print progress messages
+            verbose: Print progress messages to console
+            log_dir: Directory for log files (default: logs/)
         """
         if output_dir:
             self.output_dir = Path(output_dir)
@@ -48,6 +50,23 @@ class FluxPostProcessor:
             self.output_dir = Path('flux_analysis')
         
         self.verbose = verbose
+        
+        # Setup logging
+        if log_dir:
+            self.log_dir = Path(log_dir)
+        else:
+            self.log_dir = Path('logs')
+        
+        self.log_dir.mkdir(parents=True, exist_ok=True)
+        
+        # Create log file with timestamp
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        self.log_file = self.log_dir / f'flux_postprocessor_{timestamp}.log'
+        
+        # Initialize log file
+        with open(self.log_file, 'w') as f:
+            f.write(f"Flux PostProcessor Log - {datetime.now().isoformat()}\n")
+            f.write("=" * 60 + "\n")
         
         # Create subdirectories
         self.flux_dir = self.output_dir / 'flux_data'
@@ -63,10 +82,28 @@ class FluxPostProcessor:
         # Get PET diffusivity from material properties
         self.D_PET = materials.get_diffusivity('PET')  # nm²/s
         
+        self.log("Initialized FluxPostProcessor")
+        self.log(f"  Output directory: {self.output_dir}")
+        self.log(f"  Log file: {self.log_file}")
+        self.log(f"  D_PET = {self.D_PET:.2e} nm²/s")
+    
+    def log(self, message, level="INFO"):
+        """Log message to file and optionally to console"""
+        timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        formatted_message = f"[{timestamp}] [{level}] {message}"
+        
+        # Write to log file
+        try:
+            with open(self.log_file, 'a') as f:
+                f.write(formatted_message + "\n")
+        except Exception as e:
+            # If we can't write to log, at least print the error once
+            if self.verbose:
+                print(f"WARNING: Could not write to log: {e}")
+        
+        # Print to console if verbose
         if self.verbose:
-            print(f"Initialized FluxPostProcessor")
-            print(f"  Output directory: {self.output_dir}")
-            print(f"  D_PET = {self.D_PET:.2e} nm²/s")
+            print(message)
 
     def process_nnc_data(self, csv_file, job_name=None, save_plots=True):
         """
@@ -80,9 +117,10 @@ class FluxPostProcessor:
         Returns:
             Dict with complete analysis results
         """
-        if self.verbose:
-            print(f"\n=== PROCESSING NNC DATA ===")
-            print(f"Input file: {csv_file}")
+        self.log("\n" + "=" * 60)
+        self.log("PROCESSING NNC DATA")
+        self.log("=" * 60)
+        self.log(f"Input file: {csv_file}")
         
         # Extract job name from filename if not provided
         if not job_name:
@@ -94,10 +132,12 @@ class FluxPostProcessor:
         # Load NNC gradient data
         data = self._load_nnc_data(csv_file)
         if not data:
+            error_msg = 'Failed to load NNC data'
+            self.log(error_msg, "ERROR")
             return {
                 'success': False,
                 'job_name': job_name,
-                'error': 'Failed to load NNC data'
+                'error': error_msg
             }
         
         # Calculate mass flux using Fick's law
@@ -126,9 +166,9 @@ class FluxPostProcessor:
             plot_file = self._create_plots(results)
             results['output_files']['plot'] = str(plot_file)
         
-        if self.verbose:
-            print(f"\n✓ Analysis completed for {job_name}")
-            print(f"  Output files saved to: {self.output_dir}")
+        self.log(f"\n Analysis completed for {job_name}")
+        self.log(f"  Output files saved to: {self.output_dir}")
+        self.log(f"  Log file: {self.log_file}")
         
         return results
 
@@ -148,11 +188,11 @@ class FluxPostProcessor:
                     params['crack_spacing'] = float(parts[2][1:])     # s10000 -> 10000.0
                     params['crack_offset'] = float(parts[3][1:]) / 100 # o25 -> 0.25
                     
-                    print(f"Parsed parameters: width={params['crack_width']} nm, "
-                          f"spacing={params['crack_spacing']} nm, offset={params['crack_offset']}")
+                    self.log(f"Parsed parameters: width={params['crack_width']} nm, "
+                            f"spacing={params['crack_spacing']} nm, offset={params['crack_offset']}")
         except Exception as e:
-            print(f"Could not parse parameters from {job_name}: {e}")
-            print("Using default parameters")
+            self.log(f"Could not parse parameters from {job_name}: {e}", "WARNING")
+            self.log("Using default parameters")
         
         return params
     
@@ -174,21 +214,23 @@ class FluxPostProcessor:
                     data['nnc_second'].append(float(row['nnc_second']))
                     data['gradient_per_nm'].append(float(row['gradient_per_nm']))
             
-            print(f"Loaded {len(data['time_s'])} data points")
-            print(f"Time range: {data['time_s'][0]:.1f} to {data['time_s'][-1]:.1f} seconds")
-            print(f"Gradient range: {min(data['gradient_per_nm']):.2e} to {max(data['gradient_per_nm']):.2e} mol/nm⁴")
+            self.log(f"Loaded {len(data['time_s'])} data points")
+            self.log(f"Time range: {data['time_s'][0]:.1f} to {data['time_s'][-1]:.1f} seconds")
+            self.log(f"Gradient range: {min(data['gradient_per_nm']):.2e} to {max(data['gradient_per_nm']):.2e} mol/nm^4")
             
             return data
             
         except Exception as e:
-            print(f"ERROR loading data: {e}")
+            self.log(f"ERROR loading data: {e}", "ERROR")
             return None
     
     def _calculate_mass_flux(self, data, params):
         """Calculate mass flux using Fick's law within PET layer"""
-        print(f"\n=== CALCULATING MASS FLUX ===")
-        print(f"Using Fick's law: J = D_PET × |dC/dy|")
-        print(f"D_PET = {self.D_PET:.2e} nm²/s")
+        self.log("\n" + "=" * 60)
+        self.log("CALCULATING MASS FLUX")
+        self.log("=" * 60)
+        self.log(f"Using Fick's law: J = D_PET × |dC/dy|")
+        self.log(f"D_PET = {self.D_PET:.2e} nm²/s")
         
         flux_data = {
             'time_s': [],
@@ -202,7 +244,7 @@ class FluxPostProcessor:
         
         for i in range(len(data['time_s'])):
             time = data['time_s'][i]
-            gradient = abs(data['gradient_per_nm'][i])  # mol/nm⁴
+            gradient = abs(data['gradient_per_nm'][i])  # mol/nm^4
             
             # Apply Fick's law within PET
             flux_mol_nm2_s = self.D_PET * gradient  # mol/(nm²·s)
@@ -229,15 +271,17 @@ class FluxPostProcessor:
         if flux_data['flux_g_m2_day']:
             max_flux = max(flux_data['flux_g_m2_day'])
             final_flux = flux_data['flux_g_m2_day'][-1]
-            print(f"Max flux: {max_flux:.2e} g/(m²·day)")
-            print(f"Final flux: {final_flux:.2e} g/(m²·day)")
-            print(f"Total cumulative: {cumulative:.2e} g/m²")
+            self.log(f"Max flux: {max_flux:.2e} g/(m²·day)")
+            self.log(f"Final flux: {final_flux:.2e} g/(m²·day)")
+            self.log(f"Total cumulative: {cumulative:.2e} g/m²")
         
         return flux_data
     
     def _calculate_permeation_metrics(self, flux_data, params):
         """Calculate key permeation metrics"""
-        print(f"\n=== CALCULATING PERMEATION METRICS ===")
+        self.log("\n" + "=" * 60)
+        self.log("CALCULATING PERMEATION METRICS")
+        self.log("=" * 60)
         
         if not flux_data['flux_g_m2_day']:
             return {'error': 'No flux data available'}
@@ -314,13 +358,13 @@ class FluxPostProcessor:
         metrics['crack_fraction'] = params['crack_width'] / params['crack_spacing']
         
         # Print summary
-        print(f"Steady-state flux: {metrics['steady_state_flux']:.2e} g/(m²·day)")
+        self.log(f"Steady-state flux: {metrics['steady_state_flux']:.2e} g/(m²·day)")
         if metrics['breakthrough_time_h']:
-            print(f"Breakthrough time: {metrics['breakthrough_time_h']:.2f} hours")
+            self.log(f"Breakthrough time: {metrics['breakthrough_time_h']:.2f} hours")
         if metrics['lag_time_h']:
-            print(f"Lag time: {metrics['lag_time_h']:.2f} hours")
+            self.log(f"Lag time: {metrics['lag_time_h']:.2f} hours")
         if metrics['time_to_90_percent_h']:
-            print(f"Time to 90% steady-state: {metrics['time_to_90_percent_h']:.2f} hours")
+            self.log(f"Time to 90% steady-state: {metrics['time_to_90_percent_h']:.2f} hours")
         
         return metrics
     
@@ -351,8 +395,7 @@ class FluxPostProcessor:
                     ])
             
             output_files['flux_csv'] = str(csv_file)
-            if self.verbose:
-                print(f"  Saved flux data: {csv_file.name}")
+            self.log(f"  Saved flux data: {csv_file.name}")
             
             # Save metrics as JSON
             json_file = self.metrics_dir / f"{job_name}_metrics.json"
@@ -367,8 +410,7 @@ class FluxPostProcessor:
                 json.dump(metrics_output, f, indent=2)
             
             output_files['metrics_json'] = str(json_file)
-            if self.verbose:
-                print(f"  Saved metrics: {json_file.name}")
+            self.log(f"  Saved metrics: {json_file.name}")
             
             # Save complete analysis results (including flux data)
             full_json_file = self.metrics_dir / f"{job_name}_full_analysis.json"
@@ -392,8 +434,7 @@ class FluxPostProcessor:
             output_files['full_analysis'] = str(full_json_file)
             
         except Exception as e:
-            if self.verbose:
-                print(f"  WARNING: Error saving results: {str(e)}")
+            self.log(f"  WARNING: Error saving results: {str(e)}", "WARNING")
         
         return output_files
 
@@ -402,6 +443,8 @@ class FluxPostProcessor:
         job_name = results['job_name']
         flux_data = results['flux_data']
         metrics = results['metrics']
+        
+        self.log(f"Creating plots for {job_name}...")
         
         fig, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2, figsize=(12, 10))
         
@@ -470,8 +513,7 @@ class FluxPostProcessor:
         plt.savefig(plot_file, dpi=150, bbox_inches='tight')
         plt.close()
         
-        if self.verbose:
-            print(f"  Saved plot: {plot_file.name}")
+        self.log(f"  Saved plot: {plot_file.name}")
         
         return plot_file
 
@@ -486,9 +528,10 @@ class FluxPostProcessor:
         Returns:
             Summary of all analyses
         """
-        if self.verbose:
-            print(f"\n=== BATCH FLUX PROCESSING ===")
-            print(f"Processing {len(csv_files)} files")
+        self.log("\n" + "=" * 60)
+        self.log("BATCH FLUX PROCESSING")
+        self.log("=" * 60)
+        self.log(f"Processing {len(csv_files)} files")
         
         results_summary = {
             'total': len(csv_files),
@@ -508,8 +551,7 @@ class FluxPostProcessor:
                     results_summary['failed'] += 1
                     
             except Exception as e:
-                if self.verbose:
-                    print(f"  ERROR processing {csv_file}: {str(e)}")
+                self.log(f"  ERROR processing {csv_file}: {str(e)}", "ERROR")
                 results_summary['failed'] += 1
         
         # Save batch summary
@@ -517,18 +559,23 @@ class FluxPostProcessor:
         with open(summary_file, 'w') as f:
             json.dump(results_summary, f, indent=2)
         
-        if self.verbose:
-            print(f"\n=== BATCH PROCESSING COMPLETE ===")
-            print(f"  Successful: {results_summary['successful']}")
-            print(f"  Failed: {results_summary['failed']}")
-            print(f"  Summary saved: {summary_file}")
+        self.log("\n" + "=" * 60)
+        self.log("BATCH PROCESSING COMPLETE")
+        self.log("=" * 60)
+        self.log(f"  Successful: {results_summary['successful']}")
+        self.log(f"  Failed: {results_summary['failed']}")
+        self.log(f"  Summary saved: {summary_file}")
+        self.log(f"  Log file: {self.log_file}")
         
         return results_summary
+    
+    def get_log_file_path(self):
+        """Return the path to the current log file"""
+        return str(self.log_file)
 
 def main():
     """Main function for command line usage"""
     import argparse
-    from datetime import datetime
     
     parser = argparse.ArgumentParser(description='Process NNC gradient data to calculate mass flux')
     parser.add_argument('csv_file', nargs='?', help='Input CSV file with NNC gradient data')
@@ -536,6 +583,7 @@ def main():
     parser.add_argument('--output', help='Output directory')
     parser.add_argument('--simulation', help='Simulation name (for organized output)')
     parser.add_argument('--job', help='Override job name')
+    parser.add_argument('--log_dir', help='Directory for log files (default: logs/)')
     parser.add_argument('--no-plots', action='store_true', help='Skip plot generation')
     parser.add_argument('--quiet', action='store_true', help='Minimal output')
     
@@ -549,11 +597,22 @@ def main():
     else:
         output_dir = Path('flux_analysis')
     
+    # Determine log directory
+    if args.log_dir:
+        log_dir = Path(args.log_dir)
+    else:
+        log_dir = Path('simulations') / args.simulation / 'logs'
+    
     # Create processor
     processor = FluxPostProcessor(
         output_dir=output_dir,
-        verbose=not args.quiet
+        verbose=not args.quiet,
+        log_dir=log_dir
     )
+    
+    processor.log("Command line arguments:")
+    for arg, value in vars(args).items():
+        processor.log(f"  {arg}: {value}")
     
     # Process files
     if args.batch:
@@ -563,7 +622,7 @@ def main():
             csv_files.extend(Path('.').glob(pattern))
         
         if not csv_files:
-            print(f"ERROR: No CSV files found matching patterns: {args.batch}")
+            processor.log(f"ERROR: No CSV files found matching patterns: {args.batch}", "ERROR")
             return 1
         
         summary = processor.process_batch(csv_files, save_plots=not args.no_plots)
@@ -576,7 +635,7 @@ def main():
     elif args.csv_file:
         # Single file processing
         if not os.path.exists(args.csv_file):
-            print(f"ERROR: Input file not found: {args.csv_file}")
+            processor.log(f"ERROR: Input file not found: {args.csv_file}", "ERROR")
             return 1
         
         results = processor.process_nnc_data(
@@ -587,14 +646,15 @@ def main():
         
         if results.get('success'):
             if not args.quiet:
-                print(f"\nKey metrics:")
+                processor.log("\nKey metrics:")
                 metrics = results.get('metrics', {})
-                print(f"  Steady-state flux: {metrics.get('steady_state_flux', 'N/A')} g/(m²·day)")
-                print(f"  Breakthrough time: {metrics.get('breakthrough_time_h', 'N/A')} hours")
-                print(f"  Lag time: {metrics.get('lag_time_h', 'N/A')} hours")
+                processor.log(f"  Steady-state flux: {metrics.get('steady_state_flux', 'N/A')} g/(m²·day)")
+                processor.log(f"  Breakthrough time: {metrics.get('breakthrough_time_h', 'N/A')} hours")
+                processor.log(f"  Lag time: {metrics.get('lag_time_h', 'N/A')} hours")
+                processor.log(f"  Log file: {processor.get_log_file_path()}")
             return 0
         else:
-            print(f"Processing failed: {results.get('error', 'Unknown error')}")
+            processor.log(f"Processing failed: {results.get('error', 'Unknown error')}", "ERROR")
             return 1
     else:
         parser.print_help()

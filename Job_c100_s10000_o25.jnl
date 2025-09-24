@@ -1,0 +1,409 @@
+# -*- coding: mbcs -*-
+from part import *
+from material import *
+from section import *
+from assembly import *
+from mesh import *
+from step import *
+from load import *
+from job import *
+from interaction import *
+mdb.Model(name='PermeationModel')
+mdb.models['PermeationModel'].Material(name='PET')
+mdb.models['PermeationModel'].materials['PET'].Diffusivity(table=((100000.0, ), 
+    ))
+mdb.models['PermeationModel'].materials['PET'].Solubility(table=((2.63e-28, ), 
+    ))
+mdb.models['PermeationModel'].Material(name='dense_PET')
+mdb.models['PermeationModel'].materials['dense_PET'].Diffusivity(table=((
+    4347.82608695652, ), ))
+mdb.models['PermeationModel'].materials['dense_PET'].Solubility(table=((
+    6.049e-27, ), ))
+mdb.models['PermeationModel'].Material(name='interlayer')
+mdb.models['PermeationModel'].materials['interlayer'].Diffusivity(table=((
+    100000.0, ), ))
+mdb.models['PermeationModel'].materials['interlayer'].Solubility(table=((
+    2.63e-28, ), ))
+mdb.models['PermeationModel'].Material(name='barrier')
+mdb.models['PermeationModel'].materials['barrier'].Diffusivity(table=((
+    100000.0, ), ))
+mdb.models['PermeationModel'].materials['barrier'].Solubility(table=((2.63e-28, 
+    ), ))
+mdb.models['PermeationModel'].Material(name='air_crack')
+mdb.models['PermeationModel'].materials['air_crack'].Diffusivity(table=((
+    100000.0, ), ))
+mdb.models['PermeationModel'].materials['air_crack'].Solubility(table=((
+    2.63e-28, ), ))
+mdb.models['PermeationModel'].HomogeneousSolidSection(material='PET', name=
+    'PET_section', thickness=None)
+mdb.models['PermeationModel'].HomogeneousSolidSection(material='dense_PET', 
+    name='dense_PET_section', thickness=None)
+mdb.models['PermeationModel'].HomogeneousSolidSection(material='interlayer', 
+    name='interlayer_section', thickness=None)
+mdb.models['PermeationModel'].HomogeneousSolidSection(material='barrier', name=
+    'barrier_section', thickness=None)
+mdb.models['PermeationModel'].HomogeneousSolidSection(material='air_crack', 
+    name='air_crack_section', thickness=None)
+mdb.models['PermeationModel'].ConstrainedSketch(name='UnitCell_sketch', 
+    sheetSize=1.0)
+mdb.models['PermeationModel'].sketches['UnitCell_sketch'].rectangle(point1=(
+    0.0, 0.0), point2=(10000.0, 1250))
+mdb.models['PermeationModel'].Part(dimensionality=TWO_D_PLANAR, name='UnitCell'
+    , type=DEFORMABLE_BODY)
+mdb.models['PermeationModel'].parts['UnitCell'].BaseShell(sketch=
+    mdb.models['PermeationModel'].sketches['UnitCell_sketch'])
+mdb.models['PermeationModel'].ConstrainedSketch(name='layer_interface_0', 
+    sheetSize=1.0)
+mdb.models['PermeationModel'].sketches['layer_interface_0'].Line(point1=(0.0, 
+    500.0), point2=(10000.0, 500.0))
+mdb.models['PermeationModel'].parts['UnitCell'].PartitionFaceBySketch(faces=
+    mdb.models['PermeationModel'].parts['UnitCell'].faces, sketch=
+    mdb.models['PermeationModel'].sketches['layer_interface_0'])
+mdb.models['PermeationModel'].ConstrainedSketch(name='layer_interface_1', 
+    sheetSize=1.0)
+mdb.models['PermeationModel'].sketches['layer_interface_1'].Line(point1=(0.0, 
+    1000.0), point2=(10000.0, 1000.0))
+mdb.models['PermeationModel'].parts['UnitCell'].PartitionFaceBySketch(faces=
+    mdb.models['PermeationModel'].parts['UnitCell'].faces, sketch=
+    mdb.models['PermeationModel'].sketches['layer_interface_1'])
+mdb.models['PermeationModel'].ConstrainedSketch(name='layer_interface_2', 
+    sheetSize=1.0)
+mdb.models['PermeationModel'].sketches['layer_interface_2'].Line(point1=(0.0, 
+    1050.0), point2=(10000.0, 1050.0))
+mdb.models['PermeationModel'].parts['UnitCell'].PartitionFaceBySketch(faces=
+    mdb.models['PermeationModel'].parts['UnitCell'].faces, sketch=
+    mdb.models['PermeationModel'].sketches['layer_interface_2'])
+mdb.models['PermeationModel'].ConstrainedSketch(name='layer_interface_3', 
+    sheetSize=1.0)
+mdb.models['PermeationModel'].sketches['layer_interface_3'].Line(point1=(0.0, 
+    1100.0), point2=(10000.0, 1100.0))
+mdb.models['PermeationModel'].parts['UnitCell'].PartitionFaceBySketch(faces=
+    mdb.models['PermeationModel'].parts['UnitCell'].faces, sketch=
+    mdb.models['PermeationModel'].sketches['layer_interface_3'])
+mdb.models['PermeationModel'].ConstrainedSketch(name='layer_interface_4', 
+    sheetSize=1.0)
+mdb.models['PermeationModel'].sketches['layer_interface_4'].Line(point1=(0.0, 
+    1150.0), point2=(10000.0, 1150.0))
+mdb.models['PermeationModel'].parts['UnitCell'].PartitionFaceBySketch(faces=
+    mdb.models['PermeationModel'].parts['UnitCell'].faces, sketch=
+    mdb.models['PermeationModel'].sketches['layer_interface_4'])
+mdb.models['PermeationModel'].ConstrainedSketch(name='layer_interface_5', 
+    sheetSize=1.0)
+mdb.models['PermeationModel'].sketches['layer_interface_5'].Line(point1=(0.0, 
+    1200.0), point2=(10000.0, 1200.0))
+mdb.models['PermeationModel'].parts['UnitCell'].PartitionFaceBySketch(faces=
+    mdb.models['PermeationModel'].parts['UnitCell'].faces, sketch=
+    mdb.models['PermeationModel'].sketches['layer_interface_5'])
+mdb.models['PermeationModel'].ConstrainedSketch(name='Barrier1_crack_1', 
+    sheetSize=1.0)
+mdb.models['PermeationModel'].sketches['Barrier1_crack_1'].Line(point1=(100.0, 
+    1050), point2=(100.0, 1100))
+mdb.models['PermeationModel'].parts['UnitCell'].PartitionFaceBySketch(faces=
+    mdb.models['PermeationModel'].parts['UnitCell'].faces, sketch=
+    mdb.models['PermeationModel'].sketches['Barrier1_crack_1'])
+mdb.models['PermeationModel'].ConstrainedSketch(name='Barrier2_crack_0', 
+    sheetSize=1.0)
+mdb.models['PermeationModel'].sketches['Barrier2_crack_0'].Line(point1=(2500.0, 
+    1150), point2=(2500.0, 1200))
+mdb.models['PermeationModel'].parts['UnitCell'].PartitionFaceBySketch(faces=
+    mdb.models['PermeationModel'].parts['UnitCell'].faces, sketch=
+    mdb.models['PermeationModel'].sketches['Barrier2_crack_0'])
+mdb.models['PermeationModel'].ConstrainedSketch(name='Barrier2_crack_1', 
+    sheetSize=1.0)
+mdb.models['PermeationModel'].sketches['Barrier2_crack_1'].Line(point1=(2600.0, 
+    1150), point2=(2600.0, 1200))
+mdb.models['PermeationModel'].parts['UnitCell'].PartitionFaceBySketch(faces=
+    mdb.models['PermeationModel'].parts['UnitCell'].faces, sketch=
+    mdb.models['PermeationModel'].sketches['Barrier2_crack_1'])
+mdb.models['PermeationModel'].rootAssembly.Instance(dependent=ON, name=
+    'UnitCell-1', part=mdb.models['PermeationModel'].parts['UnitCell'])
+mdb.models['PermeationModel'].parts['UnitCell'].setElementType(elemTypes=(
+    ElemType(elemCode=DC2D4, elemLibrary=STANDARD), ), regions=(
+    mdb.models['PermeationModel'].parts['UnitCell'].faces, ))
+mdb.models['PermeationModel'].parts['UnitCell'].seedPart(size=50.0)
+mdb.models['PermeationModel'].parts['UnitCell'].generateMesh()
+mdb.models['PermeationModel'].parts['UnitCell'].SectionAssignment(region=(
+    mdb.models['PermeationModel'].parts['UnitCell'].faces[0], ), sectionName=
+    'barrier_section')
+mdb.models['PermeationModel'].parts['UnitCell'].SectionAssignment(region=(
+    mdb.models['PermeationModel'].parts['UnitCell'].faces[1], ), sectionName=
+    'air_crack_section')
+mdb.models['PermeationModel'].parts['UnitCell'].SectionAssignment(region=(
+    mdb.models['PermeationModel'].parts['UnitCell'].faces[2], ), sectionName=
+    'barrier_section')
+mdb.models['PermeationModel'].parts['UnitCell'].SectionAssignment(region=(
+    mdb.models['PermeationModel'].parts['UnitCell'].faces[3], ), sectionName=
+    'barrier_section')
+mdb.models['PermeationModel'].parts['UnitCell'].SectionAssignment(region=(
+    mdb.models['PermeationModel'].parts['UnitCell'].faces[4], ), sectionName=
+    'interlayer_section')
+mdb.models['PermeationModel'].parts['UnitCell'].SectionAssignment(region=(
+    mdb.models['PermeationModel'].parts['UnitCell'].faces[5], ), sectionName=
+    'air_crack_section')
+mdb.models['PermeationModel'].parts['UnitCell'].SectionAssignment(region=(
+    mdb.models['PermeationModel'].parts['UnitCell'].faces[6], ), sectionName=
+    'interlayer_section')
+mdb.models['PermeationModel'].parts['UnitCell'].SectionAssignment(region=(
+    mdb.models['PermeationModel'].parts['UnitCell'].faces[7], ), sectionName=
+    'PET_section')
+mdb.models['PermeationModel'].parts['UnitCell'].SectionAssignment(region=(
+    mdb.models['PermeationModel'].parts['UnitCell'].faces[8], ), sectionName=
+    'dense_PET_section')
+mdb.models['PermeationModel'].parts['UnitCell'].SectionAssignment(region=(
+    mdb.models['PermeationModel'].parts['UnitCell'].faces[9], ), sectionName=
+    'interlayer_section')
+mdb.models['PermeationModel'].rootAssembly.regenerate()
+mdb.models['PermeationModel'].rootAssembly.Set(name='PBC_L_0', nodes=
+    mdb.models['PermeationModel'].rootAssembly.instances['UnitCell-1'].nodes.getSequenceFromMask(
+    mask=('[#400 ]', ), ))
+mdb.models['PermeationModel'].rootAssembly.Set(name='PBC_R_0', nodes=
+    mdb.models['PermeationModel'].rootAssembly.instances['UnitCell-1'].nodes.getSequenceFromMask(
+    mask=('[#8 ]', ), ))
+mdb.models['PermeationModel'].rootAssembly.regenerate()
+mdb.models['PermeationModel'].Equation(name='PBC_0', terms=((1.0, 'PBC_R_0', 
+    11), (-1.0, 'PBC_L_0', 11)))
+mdb.models['PermeationModel'].rootAssembly.Set(name='PBC_L_1', nodes=
+    mdb.models['PermeationModel'].rootAssembly.instances['UnitCell-1'].nodes.getSequenceFromMask(
+    mask=('[#800 ]', ), ))
+mdb.models['PermeationModel'].rootAssembly.Set(name='PBC_R_1', nodes=
+    mdb.models['PermeationModel'].rootAssembly.instances['UnitCell-1'].nodes.getSequenceFromMask(
+    mask=('[#4 ]', ), ))
+mdb.models['PermeationModel'].rootAssembly.regenerate()
+mdb.models['PermeationModel'].Equation(name='PBC_1', terms=((1.0, 'PBC_R_1', 
+    11), (-1.0, 'PBC_L_1', 11)))
+mdb.models['PermeationModel'].rootAssembly.Set(name='PBC_L_2', nodes=
+    mdb.models['PermeationModel'].rootAssembly.instances['UnitCell-1'].nodes.getSequenceFromMask(
+    mask=('[#1000 ]', ), ))
+mdb.models['PermeationModel'].rootAssembly.Set(name='PBC_R_2', nodes=
+    mdb.models['PermeationModel'].rootAssembly.instances['UnitCell-1'].nodes.getSequenceFromMask(
+    mask=('[#200 ]', ), ))
+mdb.models['PermeationModel'].rootAssembly.regenerate()
+mdb.models['PermeationModel'].Equation(name='PBC_2', terms=((1.0, 'PBC_R_2', 
+    11), (-1.0, 'PBC_L_2', 11)))
+mdb.models['PermeationModel'].rootAssembly.Set(name='PBC_L_3', nodes=
+    mdb.models['PermeationModel'].rootAssembly.instances['UnitCell-1'].nodes.getSequenceFromMask(
+    mask=('[#2000 ]', ), ))
+mdb.models['PermeationModel'].rootAssembly.Set(name='PBC_R_3', nodes=
+    mdb.models['PermeationModel'].rootAssembly.instances['UnitCell-1'].nodes.getSequenceFromMask(
+    mask=('[#100 ]', ), ))
+mdb.models['PermeationModel'].rootAssembly.regenerate()
+mdb.models['PermeationModel'].Equation(name='PBC_3', terms=((1.0, 'PBC_R_3', 
+    11), (-1.0, 'PBC_L_3', 11)))
+mdb.models['PermeationModel'].rootAssembly.Set(name='PBC_L_4', nodes=
+    mdb.models['PermeationModel'].rootAssembly.instances['UnitCell-1'].nodes.getSequenceFromMask(
+    mask=('[#4000 ]', ), ))
+mdb.models['PermeationModel'].rootAssembly.Set(name='PBC_R_4', nodes=
+    mdb.models['PermeationModel'].rootAssembly.instances['UnitCell-1'].nodes.getSequenceFromMask(
+    mask=('[#8000 ]', ), ))
+mdb.models['PermeationModel'].rootAssembly.regenerate()
+mdb.models['PermeationModel'].Equation(name='PBC_4', terms=((1.0, 'PBC_R_4', 
+    11), (-1.0, 'PBC_L_4', 11)))
+mdb.models['PermeationModel'].rootAssembly.Set(name='PBC_L_5', nodes=
+    mdb.models['PermeationModel'].rootAssembly.instances['UnitCell-1'].nodes.getSequenceFromMask(
+    mask=('[#10000 ]', ), ))
+mdb.models['PermeationModel'].rootAssembly.Set(name='PBC_R_5', nodes=
+    mdb.models['PermeationModel'].rootAssembly.instances['UnitCell-1'].nodes.getSequenceFromMask(
+    mask=('[#20000 ]', ), ))
+mdb.models['PermeationModel'].rootAssembly.regenerate()
+mdb.models['PermeationModel'].Equation(name='PBC_5', terms=((1.0, 'PBC_R_5', 
+    11), (-1.0, 'PBC_L_5', 11)))
+mdb.models['PermeationModel'].rootAssembly.Set(name='PBC_L_6', nodes=
+    mdb.models['PermeationModel'].rootAssembly.instances['UnitCell-1'].nodes.getSequenceFromMask(
+    mask=('[#40000 ]', ), ))
+mdb.models['PermeationModel'].rootAssembly.Set(name='PBC_R_6', nodes=
+    mdb.models['PermeationModel'].rootAssembly.instances['UnitCell-1'].nodes.getSequenceFromMask(
+    mask=('[#80000 ]', ), ))
+mdb.models['PermeationModel'].rootAssembly.regenerate()
+mdb.models['PermeationModel'].Equation(name='PBC_6', terms=((1.0, 'PBC_R_6', 
+    11), (-1.0, 'PBC_L_6', 11)))
+mdb.models['PermeationModel'].rootAssembly.Set(name='PBC_L_7', nodes=
+    mdb.models['PermeationModel'].rootAssembly.instances['UnitCell-1'].nodes.getSequenceFromMask(
+    mask=('[#200000 ]', ), ))
+mdb.models['PermeationModel'].rootAssembly.Set(name='PBC_R_7', nodes=
+    mdb.models['PermeationModel'].rootAssembly.instances['UnitCell-1'].nodes.getSequenceFromMask(
+    mask=('[#100000 ]', ), ))
+mdb.models['PermeationModel'].rootAssembly.regenerate()
+mdb.models['PermeationModel'].Equation(name='PBC_7', terms=((1.0, 'PBC_R_7', 
+    11), (-1.0, 'PBC_L_7', 11)))
+mdb.models['PermeationModel'].rootAssembly.Set(name='PBC_L_8', nodes=
+    mdb.models['PermeationModel'].rootAssembly.instances['UnitCell-1'].nodes.getSequenceFromMask(
+    mask=('[#0:31 #80000 ]', ), ))
+mdb.models['PermeationModel'].rootAssembly.Set(name='PBC_R_8', nodes=
+    mdb.models['PermeationModel'].rootAssembly.instances['UnitCell-1'].nodes.getSequenceFromMask(
+    mask=('[#0:38 #800 ]', ), ))
+mdb.models['PermeationModel'].rootAssembly.regenerate()
+mdb.models['PermeationModel'].Equation(name='PBC_8', terms=((1.0, 'PBC_R_8', 
+    11), (-1.0, 'PBC_L_8', 11)))
+mdb.models['PermeationModel'].rootAssembly.Set(name='PBC_L_9', nodes=
+    mdb.models['PermeationModel'].rootAssembly.instances['UnitCell-1'].nodes.getSequenceFromMask(
+    mask=('[#0:31 #100000 ]', ), ))
+mdb.models['PermeationModel'].rootAssembly.Set(name='PBC_R_9', nodes=
+    mdb.models['PermeationModel'].rootAssembly.instances['UnitCell-1'].nodes.getSequenceFromMask(
+    mask=('[#0:38 #400 ]', ), ))
+mdb.models['PermeationModel'].rootAssembly.regenerate()
+mdb.models['PermeationModel'].Equation(name='PBC_9', terms=((1.0, 'PBC_R_9', 
+    11), (-1.0, 'PBC_L_9', 11)))
+mdb.models['PermeationModel'].rootAssembly.Set(name='PBC_L_10', nodes=
+    mdb.models['PermeationModel'].rootAssembly.instances['UnitCell-1'].nodes.getSequenceFromMask(
+    mask=('[#0:31 #200000 ]', ), ))
+mdb.models['PermeationModel'].rootAssembly.Set(name='PBC_R_10', nodes=
+    mdb.models['PermeationModel'].rootAssembly.instances['UnitCell-1'].nodes.getSequenceFromMask(
+    mask=('[#0:38 #200 ]', ), ))
+mdb.models['PermeationModel'].rootAssembly.regenerate()
+mdb.models['PermeationModel'].Equation(name='PBC_10', terms=((1.0, 'PBC_R_10', 
+    11), (-1.0, 'PBC_L_10', 11)))
+mdb.models['PermeationModel'].rootAssembly.Set(name='PBC_L_11', nodes=
+    mdb.models['PermeationModel'].rootAssembly.instances['UnitCell-1'].nodes.getSequenceFromMask(
+    mask=('[#0:31 #400000 ]', ), ))
+mdb.models['PermeationModel'].rootAssembly.Set(name='PBC_R_11', nodes=
+    mdb.models['PermeationModel'].rootAssembly.instances['UnitCell-1'].nodes.getSequenceFromMask(
+    mask=('[#0:38 #100 ]', ), ))
+mdb.models['PermeationModel'].rootAssembly.regenerate()
+mdb.models['PermeationModel'].Equation(name='PBC_11', terms=((1.0, 'PBC_R_11', 
+    11), (-1.0, 'PBC_L_11', 11)))
+mdb.models['PermeationModel'].rootAssembly.Set(name='PBC_L_12', nodes=
+    mdb.models['PermeationModel'].rootAssembly.instances['UnitCell-1'].nodes.getSequenceFromMask(
+    mask=('[#0:31 #800000 ]', ), ))
+mdb.models['PermeationModel'].rootAssembly.Set(name='PBC_R_12', nodes=
+    mdb.models['PermeationModel'].rootAssembly.instances['UnitCell-1'].nodes.getSequenceFromMask(
+    mask=('[#0:38 #80 ]', ), ))
+mdb.models['PermeationModel'].rootAssembly.regenerate()
+mdb.models['PermeationModel'].Equation(name='PBC_12', terms=((1.0, 'PBC_R_12', 
+    11), (-1.0, 'PBC_L_12', 11)))
+mdb.models['PermeationModel'].rootAssembly.Set(name='PBC_L_13', nodes=
+    mdb.models['PermeationModel'].rootAssembly.instances['UnitCell-1'].nodes.getSequenceFromMask(
+    mask=('[#0:31 #1000000 ]', ), ))
+mdb.models['PermeationModel'].rootAssembly.Set(name='PBC_R_13', nodes=
+    mdb.models['PermeationModel'].rootAssembly.instances['UnitCell-1'].nodes.getSequenceFromMask(
+    mask=('[#0:38 #40 ]', ), ))
+mdb.models['PermeationModel'].rootAssembly.regenerate()
+mdb.models['PermeationModel'].Equation(name='PBC_13', terms=((1.0, 'PBC_R_13', 
+    11), (-1.0, 'PBC_L_13', 11)))
+mdb.models['PermeationModel'].rootAssembly.Set(name='PBC_L_14', nodes=
+    mdb.models['PermeationModel'].rootAssembly.instances['UnitCell-1'].nodes.getSequenceFromMask(
+    mask=('[#0:31 #2000000 ]', ), ))
+mdb.models['PermeationModel'].rootAssembly.Set(name='PBC_R_14', nodes=
+    mdb.models['PermeationModel'].rootAssembly.instances['UnitCell-1'].nodes.getSequenceFromMask(
+    mask=('[#0:38 #20 ]', ), ))
+mdb.models['PermeationModel'].rootAssembly.regenerate()
+mdb.models['PermeationModel'].Equation(name='PBC_14', terms=((1.0, 'PBC_R_14', 
+    11), (-1.0, 'PBC_L_14', 11)))
+mdb.models['PermeationModel'].rootAssembly.Set(name='PBC_L_15', nodes=
+    mdb.models['PermeationModel'].rootAssembly.instances['UnitCell-1'].nodes.getSequenceFromMask(
+    mask=('[#0:31 #4000000 ]', ), ))
+mdb.models['PermeationModel'].rootAssembly.Set(name='PBC_R_15', nodes=
+    mdb.models['PermeationModel'].rootAssembly.instances['UnitCell-1'].nodes.getSequenceFromMask(
+    mask=('[#0:38 #10 ]', ), ))
+mdb.models['PermeationModel'].rootAssembly.regenerate()
+mdb.models['PermeationModel'].Equation(name='PBC_15', terms=((1.0, 'PBC_R_15', 
+    11), (-1.0, 'PBC_L_15', 11)))
+mdb.models['PermeationModel'].rootAssembly.Set(name='PBC_L_16', nodes=
+    mdb.models['PermeationModel'].rootAssembly.instances['UnitCell-1'].nodes.getSequenceFromMask(
+    mask=('[#0:31 #8000000 ]', ), ))
+mdb.models['PermeationModel'].rootAssembly.Set(name='PBC_R_16', nodes=
+    mdb.models['PermeationModel'].rootAssembly.instances['UnitCell-1'].nodes.getSequenceFromMask(
+    mask=('[#0:38 #8 ]', ), ))
+mdb.models['PermeationModel'].rootAssembly.regenerate()
+mdb.models['PermeationModel'].Equation(name='PBC_16', terms=((1.0, 'PBC_R_16', 
+    11), (-1.0, 'PBC_L_16', 11)))
+mdb.models['PermeationModel'].rootAssembly.Set(name='PBC_L_17', nodes=
+    mdb.models['PermeationModel'].rootAssembly.instances['UnitCell-1'].nodes.getSequenceFromMask(
+    mask=('[#0:38 #1000 ]', ), ))
+mdb.models['PermeationModel'].rootAssembly.Set(name='PBC_R_17', nodes=
+    mdb.models['PermeationModel'].rootAssembly.instances['UnitCell-1'].nodes.getSequenceFromMask(
+    mask=('[#0:45 #10 ]', ), ))
+mdb.models['PermeationModel'].rootAssembly.regenerate()
+mdb.models['PermeationModel'].Equation(name='PBC_17', terms=((1.0, 'PBC_R_17', 
+    11), (-1.0, 'PBC_L_17', 11)))
+mdb.models['PermeationModel'].rootAssembly.Set(name='PBC_L_18', nodes=
+    mdb.models['PermeationModel'].rootAssembly.instances['UnitCell-1'].nodes.getSequenceFromMask(
+    mask=('[#0:38 #2000 ]', ), ))
+mdb.models['PermeationModel'].rootAssembly.Set(name='PBC_R_18', nodes=
+    mdb.models['PermeationModel'].rootAssembly.instances['UnitCell-1'].nodes.getSequenceFromMask(
+    mask=('[#0:45 #8 ]', ), ))
+mdb.models['PermeationModel'].rootAssembly.regenerate()
+mdb.models['PermeationModel'].Equation(name='PBC_18', terms=((1.0, 'PBC_R_18', 
+    11), (-1.0, 'PBC_L_18', 11)))
+mdb.models['PermeationModel'].rootAssembly.Set(name='PBC_L_19', nodes=
+    mdb.models['PermeationModel'].rootAssembly.instances['UnitCell-1'].nodes.getSequenceFromMask(
+    mask=('[#0:38 #4000 ]', ), ))
+mdb.models['PermeationModel'].rootAssembly.Set(name='PBC_R_19', nodes=
+    mdb.models['PermeationModel'].rootAssembly.instances['UnitCell-1'].nodes.getSequenceFromMask(
+    mask=('[#0:45 #4 ]', ), ))
+mdb.models['PermeationModel'].rootAssembly.regenerate()
+mdb.models['PermeationModel'].Equation(name='PBC_19', terms=((1.0, 'PBC_R_19', 
+    11), (-1.0, 'PBC_L_19', 11)))
+mdb.models['PermeationModel'].rootAssembly.Set(name='PBC_L_20', nodes=
+    mdb.models['PermeationModel'].rootAssembly.instances['UnitCell-1'].nodes.getSequenceFromMask(
+    mask=('[#0:38 #8000 ]', ), ))
+mdb.models['PermeationModel'].rootAssembly.Set(name='PBC_R_20', nodes=
+    mdb.models['PermeationModel'].rootAssembly.instances['UnitCell-1'].nodes.getSequenceFromMask(
+    mask=('[#0:45 #2 ]', ), ))
+mdb.models['PermeationModel'].rootAssembly.regenerate()
+mdb.models['PermeationModel'].Equation(name='PBC_20', terms=((1.0, 'PBC_R_20', 
+    11), (-1.0, 'PBC_L_20', 11)))
+mdb.models['PermeationModel'].rootAssembly.Set(name='PBC_L_21', nodes=
+    mdb.models['PermeationModel'].rootAssembly.instances['UnitCell-1'].nodes.getSequenceFromMask(
+    mask=('[#0:38 #10000 ]', ), ))
+mdb.models['PermeationModel'].rootAssembly.Set(name='PBC_R_21', nodes=
+    mdb.models['PermeationModel'].rootAssembly.instances['UnitCell-1'].nodes.getSequenceFromMask(
+    mask=('[#0:45 #1 ]', ), ))
+mdb.models['PermeationModel'].rootAssembly.regenerate()
+mdb.models['PermeationModel'].Equation(name='PBC_21', terms=((1.0, 'PBC_R_21', 
+    11), (-1.0, 'PBC_L_21', 11)))
+mdb.models['PermeationModel'].rootAssembly.Set(name='PBC_L_22', nodes=
+    mdb.models['PermeationModel'].rootAssembly.instances['UnitCell-1'].nodes.getSequenceFromMask(
+    mask=('[#0:38 #20000 ]', ), ))
+mdb.models['PermeationModel'].rootAssembly.Set(name='PBC_R_22', nodes=
+    mdb.models['PermeationModel'].rootAssembly.instances['UnitCell-1'].nodes.getSequenceFromMask(
+    mask=('[#0:44 #80000000 ]', ), ))
+mdb.models['PermeationModel'].rootAssembly.regenerate()
+mdb.models['PermeationModel'].Equation(name='PBC_22', terms=((1.0, 'PBC_R_22', 
+    11), (-1.0, 'PBC_L_22', 11)))
+mdb.models['PermeationModel'].rootAssembly.Set(name='PBC_L_23', nodes=
+    mdb.models['PermeationModel'].rootAssembly.instances['UnitCell-1'].nodes.getSequenceFromMask(
+    mask=('[#0:38 #40000 ]', ), ))
+mdb.models['PermeationModel'].rootAssembly.Set(name='PBC_R_23', nodes=
+    mdb.models['PermeationModel'].rootAssembly.instances['UnitCell-1'].nodes.getSequenceFromMask(
+    mask=('[#0:44 #40000000 ]', ), ))
+mdb.models['PermeationModel'].rootAssembly.regenerate()
+mdb.models['PermeationModel'].Equation(name='PBC_23', terms=((1.0, 'PBC_R_23', 
+    11), (-1.0, 'PBC_L_23', 11)))
+mdb.models['PermeationModel'].rootAssembly.Set(name='PBC_L_24', nodes=
+    mdb.models['PermeationModel'].rootAssembly.instances['UnitCell-1'].nodes.getSequenceFromMask(
+    mask=('[#0:38 #80000 ]', ), ))
+mdb.models['PermeationModel'].rootAssembly.Set(name='PBC_R_24', nodes=
+    mdb.models['PermeationModel'].rootAssembly.instances['UnitCell-1'].nodes.getSequenceFromMask(
+    mask=('[#0:44 #20000000 ]', ), ))
+mdb.models['PermeationModel'].rootAssembly.regenerate()
+mdb.models['PermeationModel'].Equation(name='PBC_24', terms=((1.0, 'PBC_R_24', 
+    11), (-1.0, 'PBC_L_24', 11)))
+mdb.models['PermeationModel'].rootAssembly.Set(name='PBC_L_25', nodes=
+    mdb.models['PermeationModel'].rootAssembly.instances['UnitCell-1'].nodes.getSequenceFromMask(
+    mask=('[#0:38 #100000 ]', ), ))
+mdb.models['PermeationModel'].rootAssembly.Set(name='PBC_R_25', nodes=
+    mdb.models['PermeationModel'].rootAssembly.instances['UnitCell-1'].nodes.getSequenceFromMask(
+    mask=('[#0:44 #10000000 ]', ), ))
+mdb.models['PermeationModel'].rootAssembly.regenerate()
+mdb.models['PermeationModel'].Equation(name='PBC_25', terms=((1.0, 'PBC_R_25', 
+    11), (-1.0, 'PBC_L_25', 11)))
+mdb.models['PermeationModel'].MassDiffusionStep(dcmax=1000.0, initialInc=1.0, 
+    maxInc=3600.0, minInc=1e-06, name='Permeation', previous='Initial', 
+    timePeriod=43200.0)
+del mdb.models['PermeationModel'].fieldOutputRequests['F-Output-1']
+del mdb.models['PermeationModel'].historyOutputRequests['H-Output-1']
+mdb.models['PermeationModel'].FieldOutputRequest(createStepName='Permeation', 
+    frequency=5, name='F-Output-1', variables=('NNC', ))
+mdb.models['PermeationModel'].rootAssembly.Set(name='TopNodes', nodes=
+    mdb.models['PermeationModel'].rootAssembly.instances['UnitCell-1'].nodes.getSequenceFromMask(
+    mask=('[#300000 #0:44 #ffffffe0 #ffffffff:5 #fff ]', ), ))
+mdb.models['PermeationModel'].ConcentrationBC(createStepName='Permeation', 
+    distributionType=UNIFORM, magnitude=1.74e-24, name='Inlet', region=
+    mdb.models['PermeationModel'].rootAssembly.sets['TopNodes'])
+mdb.models['PermeationModel'].rootAssembly.Set(name='BottomNodes', nodes=
+    mdb.models['PermeationModel'].rootAssembly.instances['UnitCell-1'].nodes.getSequenceFromMask(
+    mask=('[#c0000 #0:37 #ffe00000 #ffffffff:5 #fffffff ]', ), ))
+mdb.models['PermeationModel'].ConcentrationBC(createStepName='Permeation', 
+    distributionType=UNIFORM, magnitude=0.0, name='Outlet', region=
+    mdb.models['PermeationModel'].rootAssembly.sets['BottomNodes'])
+# Save by franke on 2025_09_24-21.30.02; build 2024 2023_09_21-14.55.25 RELr426 190762

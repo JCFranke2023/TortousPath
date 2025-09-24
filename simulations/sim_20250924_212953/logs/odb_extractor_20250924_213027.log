@@ -1,0 +1,51 @@
+ODB Extractor Log - 2025-09-24T21:30:27.822650
+============================================================
+[2025-09-24 21:30:27] [INFO] ODB Extractor initialized
+[2025-09-24 21:30:27] [INFO] Output directory: simulations\sim_20250924_212953\extracted_data
+[2025-09-24 21:30:27] [INFO] Log file: simulations\sim_20250924_212953\logs\odb_extractor_20250924_213027.log
+[2025-09-24 21:30:27] [INFO] Command line arguments:
+[2025-09-24 21:30:27] [INFO]   odb: simulations\sim_20250924_212953\models\Job_c100_s10000_o25.odb
+[2025-09-24 21:30:27] [INFO]   job: Job_c100_s10000_o25
+[2025-09-24 21:30:27] [INFO]   batch: None
+[2025-09-24 21:30:27] [INFO]   output: simulations\sim_20250924_212953\extracted_data
+[2025-09-24 21:30:27] [INFO]   simulation: None
+[2025-09-24 21:30:27] [INFO]   log_dir: simulations\sim_20250924_212953\logs
+[2025-09-24 21:30:27] [INFO]   no_json: False
+[2025-09-24 21:30:27] [INFO]   quiet: False
+[2025-09-24 21:30:27] [INFO] ============================================================
+[2025-09-24 21:30:27] [INFO] Starting extraction for job: Job_c100_s10000_o25
+[2025-09-24 21:30:27] [INFO] ODB path: simulations\sim_20250924_212953\models\Job_c100_s10000_o25.odb
+[2025-09-24 21:30:27] [INFO] Opening ODB file...
+[2025-09-24 21:30:27] [INFO]   ODB opened successfully
+[2025-09-24 21:30:27] [INFO] Extracting NNC field data...
+[2025-09-24 21:30:27] [INFO]   Getting assembly and instance information...
+[2025-09-24 21:30:27] [INFO]     Using instance: UNITCELL-1
+[2025-09-24 21:30:27] [INFO]     Found Permeation step with 6 frames
+[2025-09-24 21:30:27] [INFO]   Analyzing mesh structure...
+[2025-09-24 21:30:28] [INFO]     Bottom row: y = 0.000 nm
+[2025-09-24 21:30:28] [INFO]     Second row: y = 50.000 nm
+[2025-09-24 21:30:28] [INFO]     Distance: 50.000 nm
+[2025-09-24 21:30:28] [INFO]     Found 201 bottom nodes, 201 second-row nodes
+[2025-09-24 21:30:28] [INFO]   Processing 6 frames...
+[2025-09-24 21:30:28] [DEBUG]       Frame 1: bottom=0.000e+00, second=0.000e+00, grad=0.000e+00
+[2025-09-24 21:30:28] [DEBUG]       Frame 2: bottom=0.000e+00, second=1.203e-26, grad=2.406e-28
+[2025-09-24 21:30:28] [DEBUG]       Frame 3: bottom=0.000e+00, second=6.943e-26, grad=1.389e-27
+[2025-09-24 21:30:29] [INFO]     Processed frame 6/6
+[2025-09-24 21:30:29] [INFO]   Extracted 6 time points for gradient calculation
+[2025-09-24 21:30:29] [INFO]   ODB closed
+[2025-09-24 21:30:29] [INFO]   Saving CSV data to simulations\sim_20250924_212953\extracted_data\nnc_gradients\Job_c100_s10000_o25_flux.csv...
+[2025-09-24 21:30:29] [INFO]     CSV saved successfully (6 rows)
+[2025-09-24 21:30:29] [INFO]   Saved NNC data: simulations\sim_20250924_212953\extracted_data\nnc_gradients\Job_c100_s10000_o25_flux.csv
+[2025-09-24 21:30:29] [INFO]   Saving raw JSON data to simulations\sim_20250924_212953\extracted_data\raw_json\Job_c100_s10000_o25_raw.json...
+[2025-09-24 21:30:29] [INFO]     JSON saved successfully
+[2025-09-24 21:30:29] [INFO]   Saved raw JSON: simulations\sim_20250924_212953\extracted_data\raw_json\Job_c100_s10000_o25_raw.json
+[2025-09-24 21:30:29] [INFO] Extraction completed successfully
+[2025-09-24 21:30:29] [INFO]   Frames extracted: 6
+[2025-09-24 21:30:29] [INFO]   Time range: 0.0 to 43200.0 s
+[2025-09-24 21:30:29] [INFO] Extraction result saved to: simulations\sim_20250924_212953\extracted_data\extraction_result.json
+[2025-09-24 21:30:29] [INFO] 
+Extraction successful
+[2025-09-24 21:30:29] [INFO] Output files:
+[2025-09-24 21:30:29] [INFO]   nnc_csv: simulations\sim_20250924_212953\extracted_data\nnc_gradients\Job_c100_s10000_o25_flux.csv
+[2025-09-24 21:30:29] [INFO]   raw_json: simulations\sim_20250924_212953\extracted_data\raw_json\Job_c100_s10000_o25_raw.json
+[2025-09-24 21:30:29] [INFO] Log file: simulations\sim_20250924_212953\logs\odb_extractor_20250924_213027.log

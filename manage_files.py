@@ -36,7 +36,7 @@ class ABQFileOrganizer:
         }
         
         # Files to keep in both locations (copy instead of move)
-        self.preserve_files = ['.cae', '.odb']
+        self.preserve_files = []
     
     def create_directory_structure(self):
         """Create organized directory structure for simulation"""
@@ -50,7 +50,7 @@ class ABQFileOrganizer:
             self.sim_dir / 'analysis' / 'flux_data',
             self.sim_dir / 'analysis' / 'metrics',
             self.sim_dir / 'analysis' / 'plots',
-            self.sim_dir / 'summary'
+            self.sim_dir / 'logs'
         ]
         
         for directory in directories:

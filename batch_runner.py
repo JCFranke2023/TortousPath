@@ -36,7 +36,7 @@ class SimulationBatch:
         self.setup_directories()
         
         # Setup logging
-        self.log_file = self.sim_dir / 'summary' / 'simulation_log.txt'
+        self.log_file = self.sim_dir / 'logs' / 'batch_log.txt'
         self.start_time = datetime.now()
         
         # Stage definitions
@@ -66,7 +66,7 @@ class SimulationBatch:
             self.sim_dir / 'analysis' / 'flux_data',
             self.sim_dir / 'analysis' / 'metrics',
             self.sim_dir / 'analysis' / 'plots',
-            self.sim_dir / 'summary'
+            self.sim_dir / 'logs'
         ]
         
         for directory in directories:
@@ -106,11 +106,15 @@ class SimulationBatch:
         self.log(f"Job name: {self.job_name}")
         self.log(f"Parameters: {self.parameters}")
         
+        log_dir = self.sim_dir / 'logs'
+        log_dir.mkdir(parents=True, exist_ok=True)
+
         try:
             # Prepare parameter string for simulation_runner
             param_str = (f"--crack_width {self.parameters.get('crack_width', 100)} "
                         f"--crack_spacing {self.parameters.get('crack_spacing', 10000)} "
-                        f"--crack_offset {self.parameters.get('crack_offset', 0.25)}")
+                        f"--crack_offset {self.parameters.get('crack_offset', 0.25)} "
+                        f"--log_dir {self.sim_dir / 'logs'}")
             
             # Run simulation
             cmd = f"abaqus cae noGUI=simulation_runner.py -- {param_str}"
@@ -209,15 +213,16 @@ class SimulationBatch:
             self.log(f"Found ODB: {odb_path}")
             
             # Run ODB extractor
-            output_dir = self.sim_dir / 'extracted_data' / 'nnc_gradients'
-            cmd = f'abaqus python odb_extractor.py --odb "{odb_path}" --job {self.job_name} --output "{output_dir}"'
+            # FIX: Pass the base extracted_data directory, not the subdirectory
+            output_dir = self.sim_dir / 'extracted_data'  # <-- FIXED: Just extracted_data
+            cmd = f'abaqus python odb_extractor.py --odb "{odb_path}" --job {self.job_name} --output "{output_dir}" --log_dir "{self.sim_dir / "logs"}"'
             
             self.log(f"Executing: {cmd}")
             result = subprocess.run(cmd, shell=True, capture_output=True, text=True)
             
             if result.returncode == 0:
-                # Check for output file
-                csv_file = output_dir / f"{self.job_name}_flux.csv"
+                # Check for output file in the correct location
+                csv_file = output_dir / 'nnc_gradients' / f"{self.job_name}_flux.csv"  # <-- It will be here
                 if csv_file.exists():
                     self.log(f"Data extracted to: {csv_file}")
                     return True
@@ -230,8 +235,8 @@ class SimulationBatch:
                 
         except Exception as e:
             self.log(f"Exception in Stage 3: {str(e)}", "ERROR")
-            return False
-    
+            return False    
+
     def run_stage_4_flux(self):
         """Stage 4: Calculate flux from extracted data"""
         self.log("=" * 60)
@@ -249,8 +254,14 @@ class SimulationBatch:
             
             # Run flux post-processor
             output_dir = self.sim_dir / 'analysis'
-            cmd = f'python flux_postprocessor.py "{csv_file}" --output "{output_dir}"'
-            
+            log_dir = self.sim_dir / 'logs'
+
+            csv_file_str = str(csv_file).replace('\\', '/')
+            output_dir_str = str(output_dir).replace('\\', '/')
+            log_dir_str = str(log_dir).replace('\\', '/')
+
+            cmd = f'python flux_postprocessor.py "{csv_file_str}" --output "{output_dir_str}" --log_dir "{log_dir_str}"'
+
             self.log(f"Executing: {cmd}")
             result = subprocess.run(cmd, shell=True, capture_output=True, text=True)
             
@@ -289,12 +300,12 @@ class SimulationBatch:
         """Save summary metrics and generate report"""
         try:
             # Save metrics summary
-            summary_file = self.sim_dir / 'summary' / 'metrics_summary.json'
+            summary_file = self.sim_dir / 'logs' / 'metrics_summary.json'
             with open(summary_file, 'w') as f:
                 json.dump(metrics, f, indent=2)
             
             # Generate markdown report
-            report_file = self.sim_dir / 'summary' / 'report.md'
+            report_file = self.sim_dir / 'logs' / 'report.md'
             self._generate_report(metrics, report_file)
             
         except Exception as e:

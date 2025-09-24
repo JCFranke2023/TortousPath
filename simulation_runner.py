@@ -12,12 +12,14 @@ from material_properties import materials
 from geometry_generator import GeometryGenerator
 
 # Logging setup
+LOG_FILE = None  # Will be set later
+
 def setup_logging(log_dir=None):
     """Setup logging to file"""
     if log_dir:
         log_path = Path(log_dir)
     else:
-        log_path = Path('simulation_results') / 'logs'
+        log_path = Path('.')  # Current directory as fallback
     
     log_path.mkdir(parents=True, exist_ok=True)
     log_file = log_path / 'simulation_runner.log'
@@ -25,19 +27,14 @@ def setup_logging(log_dir=None):
 
 def log_message(message, log_file=None):
     """Log message to file and console"""
-    if log_file is None:
-        log_file = setup_logging()
+    print(message)  # Always print to console
     
-    with open(log_file, 'a') as f:
-        f.write("{}\n".format(message))
-    print(message)
-
-# Initialize logging
-LOG_FILE = setup_logging()
-if LOG_FILE.exists():
-    LOG_FILE.unlink()
-
-log_message("=== SIMULATION RUNNER STARTED ===", LOG_FILE)
+    if log_file and log_file != None:
+        try:
+            with open(log_file, 'a') as f:
+                f.write("{}\n".format(message))
+        except:
+            pass  # Silent fail if can't write
 
 # ABAQUS imports
 try:
@@ -50,10 +47,8 @@ try:
     from mesh import ElemType, MeshNodeArray
     import interaction
     ABAQUS_ENV = True
-    log_message("ABAQUS environment detected", LOG_FILE)
 except ImportError:
     ABAQUS_ENV = False
-    log_message("Running in development mode", LOG_FILE)
 
 class SimulationRunner:
     def __init__(self, model_name='PermeationModel', output_dir='.', log_file=None):
@@ -72,11 +67,12 @@ class SimulationRunner:
                 log_message("Deleted existing model: {}".format(model_name), self.log_file)
             
             self.model = mdb.Model(name=model_name)
-            self.geometry = GeometryGenerator(self.model)
+            log_dir = log_file.parent if log_file else None
+            self.geometry = GeometryGenerator(self.model, log_dir=log_dir, verbose=True)
         else:
             self.model = None
             self.geometry = GeometryGenerator()
-        
+
         # Simulation parameters (consistent units: nanometers, seconds)
         self.total_time = 86400.0 / 2       # 86400 s = 24 hours
         self.initial_increment = 1.0     # 1 second
@@ -512,65 +508,124 @@ class SimulationRunner:
             return None
 
 # Main execution
-if __name__ == '__main__':
-    import argparse
+# Auto-execute when loaded by ABAQUS, or when run as main script
+
+if ABAQUS_ENV or __name__ == '__main__':
+    import sys
     
-    # Parse command line arguments
-    parser = argparse.ArgumentParser(description='Run PECVD barrier coating simulation')
-    parser.add_argument('--crack_width', type=float, default=100.0,
-                       help='Crack width in nm')
-    parser.add_argument('--crack_spacing', type=float, default=10000.0,
-                       help='Crack spacing in nm')
-    parser.add_argument('--crack_offset', type=float, default=0.25,
-                       help='Crack offset fraction (0-1)')
-    parser.add_argument('--job_name', type=str, default=None,
-                       help='Override automatic job name')
-    parser.add_argument('--log_dir', type=str, default=None,
-                       help='Directory for log files')
-    parser.add_argument('--output_dir', type=str, default='.',
-                       help='Base output directory')
+    # Default parameters
+    crack_width = 100.0
+    crack_spacing = 10000.0
+    crack_offset = 0.25
+    job_name = None
+    output_dir = '.'
+    log_dir = None
     
-    args = parser.parse_args()
-    
-    # Setup logging directory
-    if args.log_dir:
-        LOG_FILE = Path(args.log_dir) / 'simulation_runner.log'
-        LOG_FILE.parent.mkdir(parents=True, exist_ok=True)
-        if LOG_FILE.exists():
-            LOG_FILE.unlink()
+    # Parse arguments
+    if ABAQUS_ENV:
+        # In ABAQUS, arguments might come in different ways
+        # First check if '--' is in sys.argv
+        if '--' in sys.argv:
+            idx = sys.argv.index('--')
+            args = sys.argv[idx+1:]
+        else:
+            # If no '--', all args after script name are ours
+            args = sys.argv[1:]
+        
+        # Also check if arguments are already split (ABAQUS sometimes does this)
+        # Parse the flat list of arguments
+        i = 0
+        while i < len(args):
+            if args[i] in ['--crack_width', '-crack_width'] and i+1 < len(args):
+                crack_width = float(args[i+1])
+                i += 2
+            elif args[i] in ['--crack_spacing', '-crack_spacing'] and i+1 < len(args):
+                crack_spacing = float(args[i+1])
+                i += 2
+            elif args[i] in ['--crack_offset', '-crack_offset'] and i+1 < len(args):
+                crack_offset = float(args[i+1])
+                i += 2
+            elif args[i] in ['--job_name', '-job_name'] and i+1 < len(args):
+                job_name = args[i+1]
+                i += 2
+            elif args[i] in ['--output_dir', '-output_dir'] and i+1 < len(args):
+                output_dir = args[i+1]
+                i += 2
+            elif args[i] in ['--log_dir', '-log_dir'] and i+1 < len(args):
+                log_dir = args[i+1]
+                i += 2
+            else:
+                # Skip unrecognized arguments
+                i += 1
+          
+    elif not ABAQUS_ENV:
+        # Standard Python - use argparse
+        import argparse
+        
+        parser = argparse.ArgumentParser(description='Run PECVD barrier coating simulation')
+        parser.add_argument('--crack_width', type=float, default=100.0,
+                           help='Crack width in nm')
+        parser.add_argument('--crack_spacing', type=float, default=10000.0,
+                           help='Crack spacing in nm')
+        parser.add_argument('--crack_offset', type=float, default=0.25,
+                           help='Crack offset fraction (0-1)')
+        parser.add_argument('--job_name', type=str, default=None,
+                           help='Override automatic job name')
+        parser.add_argument('--log_dir', type=str, default=None,
+                           help='Directory for log files')
+        parser.add_argument('--output_dir', type=str, default='.',
+                           help='Base output directory')
+        
+        args = parser.parse_args()
+        crack_width = args.crack_width
+        crack_spacing = args.crack_spacing
+        crack_offset = args.crack_offset
+        job_name = args.job_name
+        output_dir = args.output_dir
+        log_dir = args.log_dir
+
+    LOG_FILE = setup_logging(log_dir)
+
+    # Clear existing log
+    if LOG_FILE.exists():
+        LOG_FILE.unlink()
     
     log_message("=== MAIN EXECUTION ===", LOG_FILE)
-    log_message(f"Parameters: crack_width={args.crack_width}, "
-                f"crack_spacing={args.crack_spacing}, crack_offset={args.crack_offset}", LOG_FILE)
+    log_message(f"Environment: {'ABAQUS' if ABAQUS_ENV else 'Python'}", LOG_FILE)
+    log_message(f"Parameters: crack_width={crack_width}, "
+                f"crack_spacing={crack_spacing}, crack_offset={crack_offset}", LOG_FILE)
+    log_message(f"Output directory: {output_dir}", LOG_FILE)
     
     try:
         # Initialize runner with output directory
-        runner = SimulationRunner(output_dir=args.output_dir, log_file=LOG_FILE)
+        runner = SimulationRunner(output_dir=output_dir, log_file=LOG_FILE)
         
         # Set parameters
         parameters = {
-            'crack_width': args.crack_width,
-            'crack_spacing': args.crack_spacing,
-            'crack_offset': args.crack_offset
+            'crack_width': crack_width,
+            'crack_spacing': crack_spacing,
+            'crack_offset': crack_offset
         }
         
-        if args.job_name:
-            parameters['job_name_override'] = args.job_name
+        if job_name:
+            parameters['job_name_override'] = job_name
         
         # Run simulation
-        job_name = runner.run_single_simulation(parameters)
+        result_job_name = runner.run_single_simulation(parameters)
         
-        if job_name:
-            log_message("SUCCESS: {}".format(job_name), LOG_FILE)
-            # Return job name via stdout for batch runner to capture
-            print(f"JOB_COMPLETED:{job_name}")
-            sys.exit(0)
+        if result_job_name:
+            log_message("SUCCESS: {}".format(result_job_name), LOG_FILE)
+            print(f"JOB_COMPLETED:{result_job_name}")
+            if not ABAQUS_ENV:
+                sys.exit(0)
         else:
             log_message("FAILED", LOG_FILE)
-            sys.exit(1)
-            
+            if not ABAQUS_ENV:
+                sys.exit(1)
+                
     except Exception as e:
         log_message("ERROR: {}".format(str(e)), LOG_FILE)
         import traceback
         log_message(traceback.format_exc(), LOG_FILE)
-        sys.exit(1)
+        if not ABAQUS_ENV:
+            sys.exit(1)

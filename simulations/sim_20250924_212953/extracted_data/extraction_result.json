@@ -1,0 +1,22 @@
+{
+  "success": true,
+  "job_name": "Job_c100_s10000_o25",
+  "odb_path": "simulations\\sim_20250924_212953\\models\\Job_c100_s10000_o25.odb",
+  "output_files": {
+    "nnc_csv": "simulations\\sim_20250924_212953\\extracted_data\\nnc_gradients\\Job_c100_s10000_o25_flux.csv",
+    "raw_json": "simulations\\sim_20250924_212953\\extracted_data\\raw_json\\Job_c100_s10000_o25_raw.json"
+  },
+  "errors": [],
+  "data_points": 6,
+  "summary": {
+    "frames_extracted": 6,
+    "time_range": [
+      0.0,
+      43200.0
+    ],
+    "gradient_range": [
+      0.0,
+      1.3919993014497092e-27
+    ]
+  }
+}
